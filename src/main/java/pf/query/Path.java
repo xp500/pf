@@ -46,9 +46,9 @@ public class Path {
 
     public static abstract class ElementOrAlias {
 
-	private final String name;
-	private final String alias;
-	private final String type;
+	protected final String name;
+	protected final String alias;
+	protected final String type;
 
 	public ElementOrAlias(final String name, final String type) {
 	    this(name, name, type);
@@ -105,13 +105,13 @@ public class Path {
 
     public static class AllAttributesNode extends AttributeNode {
 
-	public AllAttributesNode() {
-	    super("");
+	public AllAttributesNode(final String name) {
+	    super(name);
 	}
 
 	@Override
 	public String toString() {
-	    return "{:ATRIBUTO}";
+	    return String.format("{%s:ATRIBUTO}", name);
 	}
     }
 

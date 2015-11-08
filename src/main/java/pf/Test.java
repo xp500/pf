@@ -46,7 +46,7 @@ public class Test {
     public static void main(String[] args) throws IOException {
 
 	ANTLRInputStream input = new ANTLRInputStream(new StringReader(
-	    "select a(attr1)-b->c from asd as QQ <-qwe-C, b-W->RR where 1asd + 1asd > 1a or 1b == 1b and 1a == 1a"));
+	    "select * from asd as QQ <-qwe-C, b-W->RR where 1asd + 1asd > 1a or 1b == 1b and 1a == 1a"));
 
 	HelloLexer lexer = new HelloLexer(input);
 	CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -70,6 +70,13 @@ public class Test {
 	this.root = root;
 	parseListOfPath(root.list_of_path());
 	generator = new IncremetalStringGenerator(aliasToName.keySet());
+
+	parseSelect(root.enhanced_list_of_paths_or_all());
+
+	System.out.println(returnSelect);
+	for (final Path p : extraFrom) {
+	    System.out.println(p);
+	}
 
 	final ConditionContext condition = root.condition();
 	if (condition != null) {
@@ -144,13 +151,6 @@ public class Test {
 	}
     }
 
-    // private String parseRes(final ResContext res) {
-    // final List<ArgContext> args = res.arg();
-    // if (args.size() == 1) {
-    // return args.get(0).get
-    // }
-    // }
-
     private void parseListOfPath(final List_of_pathContext listOfPath) {
 	appendPath(listOfPath.path());
 	final List_of_pathContext nextListOfPath = listOfPath.list_of_path();
@@ -172,17 +172,26 @@ public class Test {
 	for (final Path path : fromElement) {
 	    for (final Node node : path.getNodes()) {
 		final Path newPath = Path.singleElementPath(node);
-		newPath.append(new AllAttributesNode(), Path.singleElementPath(new ValueNode("ASD")));
+		final String valueNodeName = generator.getNext();
+		final String attrNodeName = generator.getNext();
+		newPath.append(new AllAttributesNode(attrNodeName), Path
+		    .singleElementPath(new ValueNode(valueNodeName)));
 		extraFrom.add(newPath);
+		returnSelect.add(valueNodeName);
+		returnSelect.add(attrNodeName);
+		returnSelect.add(((ElementOrAlias) node).getAlias());
 	    }
 
 	    for (final Edge edge : path.getEdges()) {
-		if (!(edge instanceof EdgeOrAlias)) {
-		    continue;
-		}
 		final Path newPath = Path.singleElementPath((EdgeOrAlias) edge);
-		newPath.append(new AllAttributesNode(), Path.singleElementPath(new ValueNode("ASD")));
+		final String valueNodeName = generator.getNext();
+		final String attrNodeName = generator.getNext();
+		newPath.append(new AllAttributesNode(attrNodeName), Path
+		    .singleElementPath(new ValueNode(valueNodeName)));
 		extraFrom.add(newPath);
+		returnSelect.add(valueNodeName);
+		returnSelect.add(attrNodeName);
+		returnSelect.add(((ElementOrAlias) edge).getAlias());
 	    }
 	}
     }
