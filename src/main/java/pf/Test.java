@@ -4,10 +4,8 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -55,8 +53,8 @@ public class Test {
 	private final List<Path> fromElement = new ArrayList<>();
 	private final List<Path> whereElemnt = new ArrayList<>();
 
-	private final Map<String, String> aliasMap = new HashMap<>();
-	private final Set<String> usedNames = new HashSet<>();
+	private final Map<String, String> nameToAlias = new HashMap<>();
+	private final Map<String, String> aliasToName = new HashMap<>();
 
 	public Test(final RContext root) {
 		this.root = root;
@@ -71,9 +69,9 @@ public class Test {
 		for (final Path p : fromElement) {
 			System.out.println(p);
 		}
-		
-		System.out.println("Alias Map: " + aliasMap);
-		System.out.println("Aliases: " + usedNames);
+
+		System.out.println("Alias Map: " + nameToAlias);
+		System.out.println("Aliases: " + aliasToName);
 	}
 
 	private Condition parseCondition(final ConditionContext condition) {
@@ -101,16 +99,17 @@ public class Test {
 	private Condition parseExpression(final ExprContext expr) {
 		final ResContext res1 = expr.res(0);
 		final ResContext res2 = expr.res(1);
-		analizeResContext(res1);
-		analizeResContext(res2);
+		analizeResContext(res1, res2);
 		return new Expression(res1.getText(), expr.COMP().getText(), res2.getText());
 	}
 
-	private void analizeResContext(final ResContext resContext) {
-		final List<ArgContext> argsContext = resContext.arg();
-		for (final ArgContext argContext : argsContext) {
-			if (argContext.attribute_representation() != null) {
-				addPathToWhereElements(argContext.attribute_representation());
+	private void analizeResContext(final ResContext... resContext) {
+		for (final ResContext rs : resContext) {
+			final List<ArgContext> argsContext = rs.arg();
+			for (final ArgContext argContext : argsContext) {
+				if (argContext.attribute_representation() != null) {
+					addPathToWhereElements(argContext.attribute_representation());
+				}
 			}
 		}
 	}
@@ -123,7 +122,9 @@ public class Test {
 	// }
 
 	private void addPathToWhereElements(final Attribute_representationContext attributeRepresentation) {
-		
+		final String nameOrAlias = attributeRepresentation.ID(0).getText();
+		final String attribute = attributeRepresentation.ID(1).getText();
+		final String realName = aliasToName.get(nameOrAlias);
 	}
 
 	private void parseListOfPath(final List_of_pathContext listOfPath) {
@@ -156,12 +157,12 @@ public class Test {
 
 	private void checkAliases(final ElementOrAlias... elementOrAlias) {
 		for (final ElementOrAlias eoa : elementOrAlias) {
-			if (usedNames.contains(eoa.getAlias())) {
+			if (aliasToName.containsKey(eoa.getAlias())) {
 				// TODO: BETTER ERROR
 				throw new AssertionError("??");
 			}
-			usedNames.add(eoa.getAlias());
-			aliasMap.put(eoa.getName(), eoa.getAlias());
+			aliasToName.put(eoa.getAlias(), eoa.getName());
+			nameToAlias.put(eoa.getName(), eoa.getAlias());
 		}
 	}
 
