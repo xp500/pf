@@ -30,7 +30,7 @@ public class Path {
 	}
     }
 
-    private static abstract class ElementOrAlias {
+    public static abstract class ElementOrAlias {
 
 	private final String name;
 	private final String alias;
