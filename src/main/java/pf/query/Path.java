@@ -19,7 +19,7 @@ public class Path {
 
     }
 
-    public final static class EdgeOrAlias extends ElementOrAlias implements Edge {
+    public final static class EdgeOrAlias extends ElementOrAlias implements Edge, Node {
 
 	public enum Direction {
 	    LEFT, RIGHT;
@@ -103,6 +103,18 @@ public class Path {
 
     }
 
+    public static class AllAttributesNode extends AttributeNode {
+
+	public AllAttributesNode() {
+	    super("");
+	}
+
+	@Override
+	public String toString() {
+	    return "{:ATRIBUTO}";
+	}
+    }
+
     public static class ValueNode implements Node {
 
 	private static final String TYPE = "VALOR";
@@ -139,6 +151,14 @@ public class Path {
 	}
 
 	return this;
+    }
+
+    public List<Node> getNodes() {
+	return nodes;
+    }
+
+    public List<Edge> getEdges() {
+	return edges;
     }
 
     @Override
