@@ -2,12 +2,12 @@ package pf.common;
 
 import java.util.Set;
 
-public class RandomString {
+public class IncremetalStringGenerator {
 
 	final Set<String> usedStrings;
 	int counter = 1;
 
-	public RandomString(final Set<String> usedStrings) {
+	public IncremetalStringGenerator(final Set<String> usedStrings) {
 		this.usedStrings = usedStrings;
 	}
 
