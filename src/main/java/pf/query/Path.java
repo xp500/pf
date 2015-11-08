@@ -120,15 +120,15 @@ public class Path {
 
     }
 
-    public static Path singleElementPath(final NodeOrAlias node) {
+    public static Path singleElementPath(final Node node) {
 	return new Path(node);
     }
 
-    private Path(final NodeOrAlias singleNode) {
+    private Path(final Node singleNode) {
 	nodes.add(singleNode);
     }
 
-    public Path append(final EdgeOrAlias edge, final Path path) {
+    public Path append(final Edge edge, final Path path) {
 	edges.add(edge);
 	for (final Node node : path.nodes) {
 	    nodes.add(node);
