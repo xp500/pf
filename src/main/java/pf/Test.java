@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -15,6 +17,7 @@ import pf.HelloParser.ArgContext;
 import pf.HelloParser.Attribute_representationContext;
 import pf.HelloParser.ConditionContext;
 import pf.HelloParser.Element_or_aliasContext;
+import pf.HelloParser.Enhanced_list_of_paths_or_allContext;
 import pf.HelloParser.ExprContext;
 import pf.HelloParser.Inbound_pathContext;
 import pf.HelloParser.List_of_pathContext;
@@ -24,9 +27,12 @@ import pf.HelloParser.RContext;
 import pf.HelloParser.ResContext;
 import pf.common.IncremetalStringGenerator;
 import pf.query.Path;
+import pf.query.Path.AllAttributesNode;
 import pf.query.Path.AttributeNode;
+import pf.query.Path.Edge;
 import pf.query.Path.EdgeOrAlias;
 import pf.query.Path.ElementOrAlias;
+import pf.query.Path.Node;
 import pf.query.Path.NodeOrAlias;
 import pf.query.Path.ValueNode;
 import pf.query.condition.AndCondition;
@@ -39,11 +45,8 @@ public class Test {
 
 	public static void main(String[] args) throws IOException {
 
-		ANTLRInputStream input = new ANTLRInputStream(
-				new StringReader("select * from a as QQ, b as WW where QQ.asd + 1asd > 1a or bb == 1b and 1a == 1a"));
-
-		// "select a(attr1)-b->c from asd as QQ <-qwe-C, b-W->RR where
-		// 1asasd.asd + 1asd > 1a or 1b == 1b and 1a == 1a"));
+		ANTLRInputStream input = new ANTLRInputStream(new StringReader(
+				"select * from asd as QQ <-qwe-C, b-W->RR where 1asd + 1asd > 1a or 1b == 1b and 1a == 1a"));
 
 		HelloLexer lexer = new HelloLexer(input);
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -65,9 +68,15 @@ public class Test {
 
 	public Test(final RContext root) {
 		this.root = root;
-
 		parseListOfPath(root.list_of_path());
 		generator = new IncremetalStringGenerator(aliasToName.keySet());
+
+		parseSelect(root.enhanced_list_of_paths_or_all());
+
+		System.out.println(returnSelect);
+		for (final Path p : extraFrom) {
+			System.out.println(p);
+		}
 
 		final ConditionContext condition = root.condition();
 		if (condition != null) {
@@ -96,7 +105,6 @@ public class Test {
 		if (conditions.size() == 1) {
 			return new NotCondition(parseCondition(conditions.get(0)));
 		}
-
 		if (condition.BINARY_BOOLEAN_OPERATOR().getText().equals("and")) {
 			return new AndCondition(parseCondition(conditions.get(0)), parseCondition(conditions.get(1)));
 		}
@@ -168,6 +176,43 @@ public class Test {
 		final List_of_pathContext nextListOfPath = listOfPath.list_of_path();
 		if (nextListOfPath != null) {
 			parseListOfPath(nextListOfPath);
+		}
+	}
+
+	private List<Path> extraFrom = new ArrayList<>();
+	private Set<String> returnSelect = new HashSet<>();
+
+	private void parseSelect(final Enhanced_list_of_paths_or_allContext pathOrAll) {
+		if (pathOrAll.getText().equals("*")) {
+			insertAllAttributesToFrom();
+		}
+	}
+
+	private void insertAllAttributesToFrom() {
+		for (final Path path : fromElement) {
+			for (final Node node : path.getNodes()) {
+				final Path newPath = Path.singleElementPath(node);
+				final String valueNodeName = generator.getNext();
+				final String attrNodeName = generator.getNext();
+				newPath.append(new AllAttributesNode(attrNodeName),
+						Path.singleElementPath(new ValueNode(valueNodeName)));
+				extraFrom.add(newPath);
+				returnSelect.add(valueNodeName);
+				returnSelect.add(attrNodeName);
+				returnSelect.add(((ElementOrAlias) node).getAlias());
+			}
+
+			for (final Edge edge : path.getEdges()) {
+				final Path newPath = Path.singleElementPath((EdgeOrAlias) edge);
+				final String valueNodeName = generator.getNext();
+				final String attrNodeName = generator.getNext();
+				newPath.append(new AllAttributesNode(attrNodeName),
+						Path.singleElementPath(new ValueNode(valueNodeName)));
+				extraFrom.add(newPath);
+				returnSelect.add(valueNodeName);
+				returnSelect.add(attrNodeName);
+				returnSelect.add(((ElementOrAlias) edge).getAlias());
+			}
 		}
 	}
 
