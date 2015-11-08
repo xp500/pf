@@ -7,16 +7,25 @@ import pf.query.Path.EdgeOrAlias.Direction;
 
 public class Path {
 
-    private final List<NodeOrAlias> nodes = new ArrayList<>();
-    private final List<EdgeOrAlias> edges = new ArrayList<>();
+    private final List<Node> nodes = new ArrayList<>();
+    private final List<Edge> edges = new ArrayList<>();
 
-    public final static class EdgeOrAlias extends ElementOrAlias {
+    public interface Edge {
+
+	Direction getDirection();
+    }
+
+    public interface Node {
+
+    }
+
+    public final static class EdgeOrAlias extends ElementOrAlias implements Edge {
 
 	public enum Direction {
 	    LEFT, RIGHT;
 	}
 
-	private final static String TYPE = "EDGE";
+	private final static String TYPE = "ARISTA";
 
 	private final Direction direction;
 
@@ -27,6 +36,11 @@ public class Path {
 	public EdgeOrAlias(final String edge, final String alias, final Direction direction) {
 	    super(edge, alias, TYPE);
 	    this.direction = direction;
+	}
+
+	@Override
+	public Direction getDirection() {
+	    return direction;
 	}
     }
 
@@ -56,18 +70,11 @@ public class Path {
 
 	@Override
 	public String toString() {
-	    final String queryAlias;
-	    if (alias.equals(name)) {
-		queryAlias = name;
-	    } else {
-		queryAlias = alias;
-	    }
-
-	    return String.format("(%s:%s {title: %s})", queryAlias, type, name);
+	    return String.format("(%s:%s {title: %s})", alias, type, name);
 	}
     }
 
-    public static class NodeOrAlias extends ElementOrAlias {
+    public static class NodeOrAlias extends ElementOrAlias implements Node {
 
 	private static String TYPE = "OBJETO";
 
@@ -77,6 +84,38 @@ public class Path {
 
 	public NodeOrAlias(final String name, final String alias) {
 	    super(name, alias, TYPE);
+	}
+
+    }
+
+    public static class AttributeNode extends ElementOrAlias implements Edge {
+
+	private static final String TYPE = "ATRIBUTO";
+
+	public AttributeNode(final String name) {
+	    super(name, "", TYPE);
+	}
+
+	@Override
+	public Direction getDirection() {
+	    return Direction.RIGHT;
+	}
+
+    }
+
+    public static class ValueNode implements Node {
+
+	private static final String TYPE = "VALOR";
+
+	private final String name;
+
+	public ValueNode(final String name) {
+	    this.name = name;
+	}
+
+	@Override
+	public String toString() {
+	    return String.format("(%s:VALOR)", name);
 	}
 
     }
@@ -91,11 +130,11 @@ public class Path {
 
     public Path append(final EdgeOrAlias edge, final Path path) {
 	edges.add(edge);
-	for (final NodeOrAlias node : path.nodes) {
+	for (final Node node : path.nodes) {
 	    nodes.add(node);
 	}
 
-	for (final EdgeOrAlias otherEdge : path.edges) {
+	for (final Edge otherEdge : path.edges) {
 	    edges.add(otherEdge);
 	}
 
@@ -106,10 +145,10 @@ public class Path {
     public String toString() {
 	final StringBuilder str = new StringBuilder(nodes.get(0).toString());
 	for (int i = 1; i < nodes.size(); i++) {
-	    final EdgeOrAlias edge = edges.get(i - 1);
-	    final NodeOrAlias node = nodes.get(i);
+	    final Edge edge = edges.get(i - 1);
+	    final Node node = nodes.get(i);
 	    final String direction;
-	    if (edge.direction == Direction.RIGHT) {
+	    if (edge.getDirection() == Direction.RIGHT) {
 		direction = "-->";
 	    } else {
 		direction = "<--";
