@@ -74,6 +74,7 @@ public class Test {
 		parseSelect(root.enhanced_list_of_paths_or_all());
 
 		System.out.println(returnSelect);
+		System.out.println("SELECT elements path");
 		for (final Path p : extraFrom) {
 			System.out.println(p);
 		}
@@ -82,11 +83,11 @@ public class Test {
 		if (condition != null) {
 			System.out.println(parseCondition(condition));
 		}
-
+		System.out.println("FROM elements path");
 		for (final Path p : fromElement) {
 			System.out.println(p);
 		}
-
+		System.out.println("WHERE elements path");
 		for (final Path p : whereElemnt) {
 			System.out.println(p);
 		}
