@@ -14,13 +14,20 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import pf.HelloParser.ArgContext;
+import pf.HelloParser.Attribute_listContext;
+import pf.HelloParser.Attribute_list_or_allContext;
 import pf.HelloParser.Attribute_representationContext;
 import pf.HelloParser.ConditionContext;
 import pf.HelloParser.Element_or_aliasContext;
+import pf.HelloParser.Enhanced_elementContext;
+import pf.HelloParser.Enhanced_list_of_pathsContext;
 import pf.HelloParser.Enhanced_list_of_paths_or_allContext;
+import pf.HelloParser.Enhanced_pathContext;
 import pf.HelloParser.ExprContext;
+import pf.HelloParser.Inbound_enhanced_pathContext;
 import pf.HelloParser.Inbound_pathContext;
 import pf.HelloParser.List_of_pathContext;
+import pf.HelloParser.Outbound_enhanced_pathContext;
 import pf.HelloParser.Outbound_pathContext;
 import pf.HelloParser.PathContext;
 import pf.HelloParser.RContext;
@@ -46,7 +53,7 @@ public class Test {
 	public static void main(String[] args) throws IOException {
 
 		ANTLRInputStream input = new ANTLRInputStream(new StringReader(
-				"select * from asd as QQ <-qwe-C, b-W->RR where 1asd + 1asd > 1a or 1b == 1b and 1a == 1a"));
+				"select A(atts)-B(qwe, wwe)->C from asd as QQ <-qwe-C, b-W->RR where b.asd > 1a or W.qwe == 1b and 1a == 1a"));
 
 		HelloLexer lexer = new HelloLexer(input);
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -148,13 +155,6 @@ public class Test {
 		return String.format("%s %s %s", argContext1Text, oper, argContext2Text);
 	}
 
-	// private String parseRes(final ResContext res) {
-	// final List<ArgContext> args = res.arg();
-	// if (args.size() == 1) {
-	// return args.get(0).get
-	// }
-	// }
-
 	private String addPathToWhereElements(final Attribute_representationContext attributeRepresentation) {
 		final String nameOrAlias = attributeRepresentation.ID(0).getText();
 		final String attribute = attributeRepresentation.ID(1).getText();
@@ -186,7 +186,84 @@ public class Test {
 	private void parseSelect(final Enhanced_list_of_paths_or_allContext pathOrAll) {
 		if (pathOrAll.getText().equals("*")) {
 			insertAllAttributesToFrom();
+			return;
 		}
+		insertAttributesToFrom(pathOrAll.enhanced_list_of_paths());
+	}
+	
+	private void insertAttributesToFrom(final Enhanced_list_of_pathsContext paths) {
+	    final Path enhancedPath = parseEnhancedPath(paths.enhanced_path());
+	    for (final Node n : enhancedPath.getNodes()) {
+		final EnhancedElement ee = (EnhancedElement) n;
+		extraFrom.addAll(ee.getAttributePaths());
+	    }
+	    
+	    for (final Edge e : enhancedPath.getEdges()) {
+		final EnhancedElement ee = (EnhancedElement) e;
+		extraFrom.addAll(ee.getAttributePaths());
+	    }
+	    
+	    final Enhanced_list_of_pathsContext elopc = paths.enhanced_list_of_paths();
+	    if (elopc != null) {
+		insertAttributesToFrom(elopc);
+	    }
+	}
+	
+	private Path parseEnhancedPath(final Enhanced_pathContext enhancedPath) {
+		final Enhanced_elementContext element = enhancedPath.enhanced_element();
+		if (element != null) {
+		    return Path.singleElementPath(parseEnhancedElement(element));
+		}
+
+		final Outbound_enhanced_pathContext outboundPath = enhancedPath.outbound_enhanced_path();
+		if (outboundPath != null) {
+			return parseOutboundPath(outboundPath);
+		}
+
+		return parseInboundPath(enhancedPath.inbound_enhanced_path());
+	}
+	
+	private Path parseOutboundPath(final Outbound_enhanced_pathContext outboundPath) {
+	    final EnhancedElement ee0 = parseEnhancedElement(outboundPath.enhanced_element(0));
+	    final EnhancedElement ee1 = parseEnhancedElement(outboundPath.enhanced_element(1));
+	    final Path path = parseEnhancedPath(outboundPath.enhanced_path());
+	    // TODO: Improve interface for edge
+	    return Path.singleElementPath(ee0).append(ee1, path);
+	}
+
+	private Path parseInboundPath(final Inbound_enhanced_pathContext inboundPath) {
+	    final EnhancedElement ee0 = parseEnhancedElement(inboundPath.enhanced_element(0));
+	    final EnhancedElement ee1 = parseEnhancedElement(inboundPath.enhanced_element(1));
+	    final Path path = parseEnhancedPath(inboundPath.enhanced_path());
+	    // TODO: Improve interface for edge
+	    return Path.singleElementPath(ee0).append(ee1, path);
+	}
+	
+	private EnhancedElement parseEnhancedElement(final Enhanced_elementContext eec) {
+	    final Attribute_list_or_allContext aloac = eec.attribute_list_or_all();
+	    if (aloac == null) {
+		return new EnhancedElement(eec.ID().getText());
+	    }
+	    
+	    return new EnhancedElement(eec.ID().getText(), parseAttributeListOrAll(aloac));
+	}
+	
+	private AttributeListOrAll parseAttributeListOrAll(final Attribute_list_or_allContext aloac) {
+	    final Attribute_listContext alc = aloac.attribute_list();
+	    if (alc == null) {
+		return new AttributeListAll();
+	    }
+	    
+	    return parseAttributeList(alc);
+	}
+	
+	private AttributeList parseAttributeList(final Attribute_listContext alc) {
+	    final Attribute_listContext innerAlc = alc.attribute_list();
+	    if (innerAlc == null) {
+		return new AttributeList(alc.ID().getText());
+	    }
+	    
+	    return new AttributeList(alc.ID().getText(), parseAttributeList(innerAlc));
 	}
 
 	private void insertAllAttributesToFrom() {
