@@ -53,7 +53,7 @@ public class Test {
 	public static void main(String[] args) throws IOException {
 
 		ANTLRInputStream input = new ANTLRInputStream(new StringReader(
-				"select A(atts)-B(qwe, wwe)->C from asd as QQ <-qwe-C, b-W->RR where b.asd > 1a or W.qwe == 1b and 1a == 1a"));
+				"select * from Jugador-Jugo->Equipo where Equipo.Nombre == 1Alfa"));
 
 		HelloLexer lexer = new HelloLexer(input);
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -80,28 +80,51 @@ public class Test {
 
 		parseSelect(root.enhanced_list_of_paths_or_all());
 
-		System.out.println(returnSelect);
-		System.out.println("SELECT elements path");
-		for (final Path p : extraFrom) {
-			System.out.println(p);
-		}
-
+//		System.out.println(returnSelect);
+//		System.out.println("SELECT elements path");
+//		for (final Path p : extraFrom) {
+//			System.out.println(p);
+//		}
+		
 		final ConditionContext condition = root.condition();
+//		System.out.println("FROM elements path");
+//		for (final Path p : fromElement) {
+//			System.out.println(p);
+//		}
+//		System.out.println("WHERE elements path");
+//		for (final Path p : whereElemnt) {
+//			System.out.println(p);
+//		}
+		
+		final List<Path> finalFrom = new ArrayList<>(fromElement.size() + extraFrom.size() + whereElemnt.size());
+		finalFrom.addAll(fromElement);
+		finalFrom.addAll(extraFrom);
+		finalFrom.addAll(whereElemnt);
+		
+		System.out.print("MATCH ");
+		joinAndPrint(finalFrom, ", ");
+		
 		if (condition != null) {
-			System.out.println(parseCondition(condition));
+		    System.out.print(" WHERE ");
+		    System.out.print(parseCondition(condition));
 		}
-		System.out.println("FROM elements path");
-		for (final Path p : fromElement) {
-			System.out.println(p);
-		}
-		System.out.println("WHERE elements path");
-		for (final Path p : whereElemnt) {
-			System.out.println(p);
-		}
+		
+		System.out.print(" RETURN ");
+		
+		joinAndPrint(new ArrayList<>(returnSelect), ", ");
+		
 
-		System.out.println("Alias Map: " + nameToAlias);
-		System.out.println("Aliases: " + aliasToName);
+
+//		System.out.println("Alias Map: " + nameToAlias);
+//		System.out.println("Aliases: " + aliasToName);
 	}
+	
+        private void joinAndPrint(final List<?> l, final String separator) {
+        	System.out.print(l.get(0));
+        	for (int i = 1; i < l.size(); i++) {
+        	    System.out.print(separator + l.get(i));
+        	}
+        }
 
 	private Condition parseCondition(final ConditionContext condition) {
 		final ExprContext expr = condition.expr();

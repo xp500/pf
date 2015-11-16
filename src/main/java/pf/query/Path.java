@@ -70,7 +70,7 @@ public class Path {
 
 	@Override
 	public String toString() {
-	    return String.format("(%s:%s {title: %s})", alias, type, name);
+	    return String.format("(%s:%s {title: '%s'})", alias, type, name);
 	}
     }
 
@@ -111,7 +111,7 @@ public class Path {
 
 	@Override
 	public String toString() {
-	    return String.format("{%s:ATRIBUTO}", name);
+	    return String.format("(%s:ATRIBUTO)", name);
 	}
     }
 
