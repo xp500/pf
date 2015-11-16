@@ -1,0 +1,59 @@
+<html>
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<body>
+<div id="graph"></div>
+</body>
+
+<style> .node { cursor: pointer; stroke: #3182bd; stroke-width: 1.5px; } .link { fill: none; stroke: #9ecae1; stroke-width: 1.5px; } </style>
+<script>
+
+
+var width = 800, height = 800;
+
+// force layout setup
+
+var force = d3.layout.force().charge(-200).linkDistance(30).size([width, height]);
+
+var tooltip = d3.select("body") .append("div") .style("position", "absolute") .style("z-index", "10") .style("visibility", "hidden");
+
+// setup svg div
+
+var svg = d3.select("#graph").append("svg").attr("width", "100%").attr("height", "100%").attr("pointer-events", "all");
+
+var jsonn = '{"nodes":[{"name":"Peter","label":"Person","id":1},{"name":"Michael","label":"Person","id":2},{"name":"Neo4j","label":"Database","id":3}],"links":[{"source":0, "target":1, "type":"KNOWS", "since":2010},{"source":0, "target":2, "type":"FOUNDED"},{"source":1, "target":2, "type":"WORKS_ON"}]}';
+
+var graph = JSON.parse(jsonn);
+
+force.nodes(graph.nodes).links(graph.links).start();
+
+
+
+// render relationships as lines
+
+var link = svg.selectAll(".link").data(graph.links).enter().append("line").attr("class", "link");
+
+
+
+// render nodes as circles, css-class from label
+
+var node = svg.selectAll(".node").data(graph.nodes).enter().append("circle").attr("class", function (d) { return "node " + d.label; }).attr("r", 10).call(force.drag).on("mouseover", function(d){tooltip.text(d.name);return tooltip.style("visibility", "visible");}) .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");}) .on("mouseout", function(){return tooltip.style("visibility", "hidden");}).style("fill", color);
+
+
+// html title attribute for title node-attribute
+
+node.append("title").text(function (d) { return d.title; });
+
+
+
+// force feed algo ticks for coordinate computation
+
+force.on("tick", function() {
+
+    link.attr("x1", function(d) { return d.source.x; }).attr("y1", function(d) { return d.source.y; }).attr("x2", function(d) { return d.target.x; }).attr("y2", function(d) { return d.target.y; });
+    node.attr("cx", function(d) { return d.x; }).attr("cy", function(d) { return d.y; });
+
+});
+
+function color(d) { return d.label == "Person" ? "#3182bd" : "#fd8d3c"; }
+</script>
+</html>
