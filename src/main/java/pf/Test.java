@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -26,12 +27,14 @@ import pf.HelloParser.Enhanced_pathContext;
 import pf.HelloParser.ExprContext;
 import pf.HelloParser.Inbound_enhanced_pathContext;
 import pf.HelloParser.Inbound_pathContext;
+import pf.HelloParser.IntervalContext;
 import pf.HelloParser.List_of_pathContext;
 import pf.HelloParser.Outbound_enhanced_pathContext;
 import pf.HelloParser.Outbound_pathContext;
 import pf.HelloParser.PathContext;
 import pf.HelloParser.RContext;
 import pf.HelloParser.ResContext;
+import pf.HelloParser.Temp_modifierContext;
 import pf.common.IncremetalStringGenerator;
 import pf.query.Path;
 import pf.query.Path.AllAttributesNode;
@@ -47,13 +50,15 @@ import pf.query.condition.Condition;
 import pf.query.condition.Expression;
 import pf.query.condition.NotCondition;
 import pf.query.condition.OrCondition;
+import pf.temporal.Interval;
+import pf.temporal.Snapshot;
 
 public class Test {
 
 	public static void main(String[] args) throws IOException {
 
 		ANTLRInputStream input = new ANTLRInputStream(
-				new StringReader("select * from Jugador-Jugo->Equipo where Equipo.Nombre = 'Alfa'"));
+				new StringReader("select * from Jugador-Jugo->Equipo where Equipo.Nombre = 'Alfa' SNAPSHOT 123-22-33-21:22:23"));
 
 		HelloLexer lexer = new HelloLexer(input);
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -92,6 +97,20 @@ public class Test {
 		} else {
 			condition = parseCondition(conditionCtx);
 		}
+		
+		final Temp_modifierContext temporal = root.temp_modifier();
+		final Predicate<org.neo4j.graphdb.Node> filter;
+		if (temporal == null) {
+		    filter = new Predicate<org.neo4j.graphdb.Node>() {
+			@Override
+			public boolean test(org.neo4j.graphdb.Node t) {
+			    return true;
+			}
+		    };
+		} else {
+		    filter = parseTemporal(temporal);
+		}
+		
 		// System.out.println("FROM elements path");
 		// for (final Path p : fromElement) {
 		// System.out.println(p);
@@ -121,8 +140,25 @@ public class Test {
 		// System.out.println("Alias Map: " + nameToAlias);
 		// System.out.println("Aliases: " + aliasToName);
 	}
+	
+	private Predicate<org.neo4j.graphdb.Node> parseTemporal(final Temp_modifierContext tmc) {
+	    final TerminalNode moment = tmc.MOMENT();
+	    if (moment == null) {
+		return parseInterval(tmc.interval());
+	    } else {
+		return parseSnapshot(tmc.MOMENT());
+	    }
+	}
+	
+	private static Predicate<org.neo4j.graphdb.Node> parseSnapshot(final TerminalNode snapshot) {
+	    return new Snapshot(snapshot.getText());
+	}
+	
+	private static Predicate<org.neo4j.graphdb.Node> parseInterval(final IntervalContext interval) {
+	    return new Interval(interval.NUMBER(0).getText(), interval.NUMBER(1).getText());
+	}
 
-	private void joinAndPrint(final List<?> l, final String separator) {
+	private static void joinAndPrint(final List<?> l, final String separator) {
 		System.out.print(l.get(0));
 		for (int i = 1; i < l.size(); i++) {
 			System.out.print(separator + l.get(i));

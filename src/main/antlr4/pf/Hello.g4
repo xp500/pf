@@ -51,8 +51,9 @@ attribute_representation : ID '.' ID; // TODO: Va todo junto
 
 temp_modifier : 'SNAPSHOT' MOMENT | 'IN' interval;
 
-MOMENT : [0-9]+; // TODO: Ver bien que va
-interval : MOMENT '-' MOMENT;
+MOMENT : NUMBER ('-' NUMBER ('-' NUMBER ('-' NUMBER (':' NUMBER (':' NUMBER)?)?)?)?)?;
+interval : NUMBER '-' NUMBER;
 
 ID : [a-zA-Z][a-zA-Z0-9]*;
-CTE: '\''.*'\'' | [0-9]+;
+CTE: '\''.*'\'' | NUMBER;
+NUMBER : [0-9]+;
