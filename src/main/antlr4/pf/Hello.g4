@@ -38,7 +38,7 @@ condition
 BINARY_BOOLEAN_OPERATOR : 'and' | 'or';
 expr : res COMP res;
 COMP
-	: '=='
+	: '='
 	| '<>'
 	| '>'
 	| '<'
@@ -55,4 +55,4 @@ MOMENT : [0-9]+; // TODO: Ver bien que va
 interval : MOMENT '-' MOMENT;
 
 ID : [a-zA-Z][a-zA-Z0-9]*;
-CTE: [a-zA-Z0-9]+;
+CTE: '\''.*'\'' | [0-9]+;

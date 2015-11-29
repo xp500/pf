@@ -52,8 +52,8 @@ public class Test {
 
 	public static void main(String[] args) throws IOException {
 
-		ANTLRInputStream input = new ANTLRInputStream(new StringReader(
-				"select * from Jugador-Jugo->Equipo where Equipo.Nombre == 1Alfa"));
+		ANTLRInputStream input = new ANTLRInputStream(
+				new StringReader("select * from Jugador-Jugo->Equipo where Equipo.Nombre = 'Alfa'"));
 
 		HelloLexer lexer = new HelloLexer(input);
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -80,58 +80,55 @@ public class Test {
 
 		parseSelect(root.enhanced_list_of_paths_or_all());
 
-//		System.out.println(returnSelect);
-//		System.out.println("SELECT elements path");
-//		for (final Path p : extraFrom) {
-//			System.out.println(p);
-//		}
-		
+		// System.out.println(returnSelect);
+		// System.out.println("SELECT elements path");
+		// for (final Path p : extraFrom) {
+		// System.out.println(p);
+		// }
+
 		final ConditionContext conditionCtx = root.condition();
 		final Condition condition;
 		if (conditionCtx == null) {
 			condition = null;
 		} else {
-		    	condition = parseCondition(conditionCtx);
+			condition = parseCondition(conditionCtx);
 		}
-//		System.out.println("FROM elements path");
-//		for (final Path p : fromElement) {
-//			System.out.println(p);
-//		}
-//		System.out.println("WHERE elements path");
-//		for (final Path p : whereElemnt) {
-//			System.out.println(p);
-//		}
-		
+		// System.out.println("FROM elements path");
+		// for (final Path p : fromElement) {
+		// System.out.println(p);
+		// }
+		// System.out.println("WHERE elements path");
+		// for (final Path p : whereElemnt) {
+		// System.out.println(p);
+		// }
+
 		final List<Path> finalFrom = new ArrayList<>(fromElement.size() + extraFrom.size() + whereElemnt.size());
 		finalFrom.addAll(fromElement);
 		finalFrom.addAll(extraFrom);
 		finalFrom.addAll(whereElemnt);
-		
+
 		System.out.print("MATCH ");
 		joinAndPrint(finalFrom, ", ");
-		
+
 		if (condition != null) {
-		    System.out.print(" WHERE ");
-		    System.out.print(condition);
+			System.out.print(" WHERE ");
+			System.out.print(condition);
 		}
-		
-		
+
 		System.out.print(" RETURN ");
-		
+
 		joinAndPrint(new ArrayList<>(returnSelect), ", ");
-		
 
-
-//		System.out.println("Alias Map: " + nameToAlias);
-//		System.out.println("Aliases: " + aliasToName);
+		// System.out.println("Alias Map: " + nameToAlias);
+		// System.out.println("Aliases: " + aliasToName);
 	}
-	
-        private void joinAndPrint(final List<?> l, final String separator) {
-        	System.out.print(l.get(0));
-        	for (int i = 1; i < l.size(); i++) {
-        	    System.out.print(separator + l.get(i));
-        	}
-        }
+
+	private void joinAndPrint(final List<?> l, final String separator) {
+		System.out.print(l.get(0));
+		for (int i = 1; i < l.size(); i++) {
+			System.out.print(separator + l.get(i));
+		}
+	}
 
 	private Condition parseCondition(final ConditionContext condition) {
 		final ExprContext expr = condition.expr();
@@ -220,29 +217,29 @@ public class Test {
 		}
 		insertAttributesToFrom(pathOrAll.enhanced_list_of_paths());
 	}
-	
+
 	private void insertAttributesToFrom(final Enhanced_list_of_pathsContext paths) {
-	    final Path enhancedPath = parseEnhancedPath(paths.enhanced_path());
-	    for (final Node n : enhancedPath.getNodes()) {
-		final EnhancedElement ee = (EnhancedElement) n;
-		extraFrom.addAll(ee.getAttributePaths());
-	    }
-	    
-	    for (final Edge e : enhancedPath.getEdges()) {
-		final EnhancedElement ee = (EnhancedElement) e;
-		extraFrom.addAll(ee.getAttributePaths());
-	    }
-	    
-	    final Enhanced_list_of_pathsContext elopc = paths.enhanced_list_of_paths();
-	    if (elopc != null) {
-		insertAttributesToFrom(elopc);
-	    }
+		final Path enhancedPath = parseEnhancedPath(paths.enhanced_path());
+		for (final Node n : enhancedPath.getNodes()) {
+			final EnhancedElement ee = (EnhancedElement) n;
+			extraFrom.addAll(ee.getAttributePaths());
+		}
+
+		for (final Edge e : enhancedPath.getEdges()) {
+			final EnhancedElement ee = (EnhancedElement) e;
+			extraFrom.addAll(ee.getAttributePaths());
+		}
+
+		final Enhanced_list_of_pathsContext elopc = paths.enhanced_list_of_paths();
+		if (elopc != null) {
+			insertAttributesToFrom(elopc);
+		}
 	}
-	
+
 	private Path parseEnhancedPath(final Enhanced_pathContext enhancedPath) {
 		final Enhanced_elementContext element = enhancedPath.enhanced_element();
 		if (element != null) {
-		    return Path.singleElementPath(parseEnhancedElement(element));
+			return Path.singleElementPath(parseEnhancedElement(element));
 		}
 
 		final Outbound_enhanced_pathContext outboundPath = enhancedPath.outbound_enhanced_path();
@@ -252,48 +249,48 @@ public class Test {
 
 		return parseInboundPath(enhancedPath.inbound_enhanced_path());
 	}
-	
+
 	private Path parseOutboundPath(final Outbound_enhanced_pathContext outboundPath) {
-	    final EnhancedElement ee0 = parseEnhancedElement(outboundPath.enhanced_element(0));
-	    final EnhancedElement ee1 = parseEnhancedElement(outboundPath.enhanced_element(1));
-	    final Path path = parseEnhancedPath(outboundPath.enhanced_path());
-	    // TODO: Improve interface for edge
-	    return Path.singleElementPath(ee0).append(ee1, path);
+		final EnhancedElement ee0 = parseEnhancedElement(outboundPath.enhanced_element(0));
+		final EnhancedElement ee1 = parseEnhancedElement(outboundPath.enhanced_element(1));
+		final Path path = parseEnhancedPath(outboundPath.enhanced_path());
+		// TODO: Improve interface for edge
+		return Path.singleElementPath(ee0).append(ee1, path);
 	}
 
 	private Path parseInboundPath(final Inbound_enhanced_pathContext inboundPath) {
-	    final EnhancedElement ee0 = parseEnhancedElement(inboundPath.enhanced_element(0));
-	    final EnhancedElement ee1 = parseEnhancedElement(inboundPath.enhanced_element(1));
-	    final Path path = parseEnhancedPath(inboundPath.enhanced_path());
-	    // TODO: Improve interface for edge
-	    return Path.singleElementPath(ee0).append(ee1, path);
+		final EnhancedElement ee0 = parseEnhancedElement(inboundPath.enhanced_element(0));
+		final EnhancedElement ee1 = parseEnhancedElement(inboundPath.enhanced_element(1));
+		final Path path = parseEnhancedPath(inboundPath.enhanced_path());
+		// TODO: Improve interface for edge
+		return Path.singleElementPath(ee0).append(ee1, path);
 	}
-	
+
 	private EnhancedElement parseEnhancedElement(final Enhanced_elementContext eec) {
-	    final Attribute_list_or_allContext aloac = eec.attribute_list_or_all();
-	    if (aloac == null) {
-		return new EnhancedElement(eec.ID().getText());
-	    }
-	    
-	    return new EnhancedElement(eec.ID().getText(), parseAttributeListOrAll(aloac));
+		final Attribute_list_or_allContext aloac = eec.attribute_list_or_all();
+		if (aloac == null) {
+			return new EnhancedElement(eec.ID().getText());
+		}
+
+		return new EnhancedElement(eec.ID().getText(), parseAttributeListOrAll(aloac));
 	}
-	
+
 	private AttributeListOrAll parseAttributeListOrAll(final Attribute_list_or_allContext aloac) {
-	    final Attribute_listContext alc = aloac.attribute_list();
-	    if (alc == null) {
-		return new AttributeListAll();
-	    }
-	    
-	    return parseAttributeList(alc);
+		final Attribute_listContext alc = aloac.attribute_list();
+		if (alc == null) {
+			return new AttributeListAll();
+		}
+
+		return parseAttributeList(alc);
 	}
-	
+
 	private AttributeList parseAttributeList(final Attribute_listContext alc) {
-	    final Attribute_listContext innerAlc = alc.attribute_list();
-	    if (innerAlc == null) {
-		return new AttributeList(alc.ID().getText());
-	    }
-	    
-	    return new AttributeList(alc.ID().getText(), parseAttributeList(innerAlc));
+		final Attribute_listContext innerAlc = alc.attribute_list();
+		if (innerAlc == null) {
+			return new AttributeList(alc.ID().getText());
+		}
+
+		return new AttributeList(alc.ID().getText(), parseAttributeList(innerAlc));
 	}
 
 	private void insertAllAttributesToFrom() {
