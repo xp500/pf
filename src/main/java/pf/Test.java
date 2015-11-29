@@ -57,15 +57,9 @@ public class Test {
 
 	public static void main(String[] args) throws IOException {
 
-		ANTLRInputStream input = new ANTLRInputStream(
-				new StringReader("select * from Jugador-Jugo->Equipo where Equipo.Nombre = 'Alfa' SNAPSHOT 123-22-33-21:22:23"));
-
-		HelloLexer lexer = new HelloLexer(input);
-		CommonTokenStream tokens = new CommonTokenStream(lexer);
-		HelloParser parser = new HelloParser(tokens);
-		RContext tree = parser.r();
-
-		new Test(tree);
+		Test test = new Test(
+				"select * from Jugador-Jugo->Equipo where Equipo.Nombre = 'Alfa' SNAPSHOT 123-22-33-21:22:23");
+		test.getResultsAsString();
 
 	}
 
@@ -77,18 +71,22 @@ public class Test {
 	private final Map<String, String> nameToAlias = new HashMap<>();
 	private final Map<String, String> aliasToName = new HashMap<>();
 
-	public Test(final RContext root) {
-		this.root = root;
+	public Test(final String query) throws IOException {
+		// query =
+		ANTLRInputStream input = new ANTLRInputStream(new StringReader(query));
+
+		HelloLexer lexer = new HelloLexer(input);
+		CommonTokenStream tokens = new CommonTokenStream(lexer);
+		HelloParser parser = new HelloParser(tokens);
+		RContext tree = parser.r();
+		this.root = tree;
+	}
+
+	public String getResultsAsString() {
 		parseListOfPath(root.list_of_path());
 		generator = new IncremetalStringGenerator(aliasToName.keySet());
 
 		parseSelect(root.enhanced_list_of_paths_or_all());
-
-		// System.out.println(returnSelect);
-		// System.out.println("SELECT elements path");
-		// for (final Path p : extraFrom) {
-		// System.out.println(p);
-		// }
 
 		final ConditionContext conditionCtx = root.condition();
 		final Condition condition;
@@ -97,71 +95,62 @@ public class Test {
 		} else {
 			condition = parseCondition(conditionCtx);
 		}
-		
+
 		final Temp_modifierContext temporal = root.temp_modifier();
 		final Predicate<org.neo4j.graphdb.Node> filter;
 		if (temporal == null) {
-		    filter = new Predicate<org.neo4j.graphdb.Node>() {
-			@Override
-			public boolean test(org.neo4j.graphdb.Node t) {
-			    return true;
-			}
-		    };
+			filter = new Predicate<org.neo4j.graphdb.Node>() {
+				@Override
+				public boolean test(org.neo4j.graphdb.Node t) {
+					return true;
+				}
+			};
 		} else {
-		    filter = parseTemporal(temporal);
+			filter = parseTemporal(temporal);
 		}
-		
-		// System.out.println("FROM elements path");
-		// for (final Path p : fromElement) {
-		// System.out.println(p);
-		// }
-		// System.out.println("WHERE elements path");
-		// for (final Path p : whereElemnt) {
-		// System.out.println(p);
-		// }
 
 		final List<Path> finalFrom = new ArrayList<>(fromElement.size() + extraFrom.size() + whereElemnt.size());
 		finalFrom.addAll(fromElement);
 		finalFrom.addAll(extraFrom);
 		finalFrom.addAll(whereElemnt);
 
-		System.out.print("MATCH ");
-		joinAndPrint(finalFrom, ", ");
+		final StringBuilder finalQuery = new StringBuilder();
+		finalQuery.append("MATCH ");
+		joinAndAppend(finalFrom, ", ", finalQuery);
 
 		if (condition != null) {
-			System.out.print(" WHERE ");
-			System.out.print(condition);
+			finalQuery.append(" WHERE ");
+			finalQuery.append(condition);
 		}
 
-		System.out.print(" RETURN ");
+		finalQuery.append(" RETURN ");
 
-		joinAndPrint(new ArrayList<>(returnSelect), ", ");
-
-		// System.out.println("Alias Map: " + nameToAlias);
-		// System.out.println("Aliases: " + aliasToName);
+		joinAndAppend(new ArrayList<>(returnSelect), ", ", finalQuery);
+		System.out.println(finalQuery);
+		return Dao.query(finalQuery.toString(), filter).toString();
 	}
-	
+
 	private Predicate<org.neo4j.graphdb.Node> parseTemporal(final Temp_modifierContext tmc) {
-	    final TerminalNode moment = tmc.MOMENT();
-	    if (moment == null) {
-		return parseInterval(tmc.interval());
-	    } else {
-		return parseSnapshot(tmc.MOMENT());
-	    }
-	}
-	
-	private static Predicate<org.neo4j.graphdb.Node> parseSnapshot(final TerminalNode snapshot) {
-	    return new Snapshot(snapshot.getText());
-	}
-	
-	private static Predicate<org.neo4j.graphdb.Node> parseInterval(final IntervalContext interval) {
-	    return new Interval(interval.NUMBER(0).getText(), interval.NUMBER(1).getText());
+		final TerminalNode moment = tmc.MOMENT();
+		if (moment == null) {
+			return parseInterval(tmc.interval());
+		} else {
+			return parseSnapshot(tmc.MOMENT());
+		}
 	}
 
-	private static void joinAndPrint(final List<?> l, final String separator) {
-		System.out.print(l.get(0));
+	private static Predicate<org.neo4j.graphdb.Node> parseSnapshot(final TerminalNode snapshot) {
+		return new Snapshot(snapshot.getText());
+	}
+
+	private static Predicate<org.neo4j.graphdb.Node> parseInterval(final IntervalContext interval) {
+		return new Interval(interval.NUMBER(0).getText(), interval.NUMBER(1).getText());
+	}
+
+	private static void joinAndAppend(final List<?> l, final String separator, final StringBuilder strBuilder) {
+		strBuilder.append(l.get(0));
 		for (int i = 1; i < l.size(); i++) {
-			System.out.print(separator + l.get(i));
+			strBuilder.append(separator + l.get(i));
 		}
 	}
 

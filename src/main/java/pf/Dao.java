@@ -16,13 +16,13 @@ import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import pf.json.JsonGraph;
 import pf.json.JsonNode;
 import pf.json.Link;
 import pf.temporal.Snapshot;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 public class Dao {
 
@@ -34,7 +34,7 @@ public class Dao {
 	query("MATCH (n:OBJETO) RETURN n LIMIT 25", new Snapshot("1988"));
     }
 
-    public static void query(final String q, final Predicate<Node> filter) {
+    public static Gson query(final String q, final Predicate<Node> filter) {
 	final Set<Long> visitedNodes = new HashSet<>();
 	final List<JsonNode> nodes = new ArrayList<>();
 	final List<Relationship> relationships = new ArrayList<>();
@@ -60,6 +60,7 @@ public class Dao {
 	    
 	    final JsonGraph g = new JsonGraph(nodes, links);
 	    System.out.println(gson.toJson(g));
+	    return gson;
 	}
     }
 
