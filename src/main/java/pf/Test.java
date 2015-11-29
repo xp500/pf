@@ -58,7 +58,6 @@ public class Test {
 		HelloLexer lexer = new HelloLexer(input);
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
 		HelloParser parser = new HelloParser(tokens);
-		// parser.addParseListener(new Visitor());
 		RContext tree = parser.r();
 
 		new Test(tree);
