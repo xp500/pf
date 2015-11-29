@@ -86,7 +86,13 @@ public class Test {
 //			System.out.println(p);
 //		}
 		
-		final ConditionContext condition = root.condition();
+		final ConditionContext conditionCtx = root.condition();
+		final Condition condition;
+		if (conditionCtx == null) {
+			condition = null;
+		} else {
+		    	condition = parseCondition(conditionCtx);
+		}
 //		System.out.println("FROM elements path");
 //		for (final Path p : fromElement) {
 //			System.out.println(p);
@@ -106,8 +112,9 @@ public class Test {
 		
 		if (condition != null) {
 		    System.out.print(" WHERE ");
-		    System.out.print(parseCondition(condition));
+		    System.out.print(condition);
 		}
+		
 		
 		System.out.print(" RETURN ");
 		
