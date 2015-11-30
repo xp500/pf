@@ -58,8 +58,8 @@ public class Test {
 	public static void main(String[] args) throws IOException {
 
 		Test test = new Test(
-				"select * from Jugador-Jugo->Equipo where Equipo.Nombre = 'Alfa' SNAPSHOT 123-22-33-21:22:23");
-		test.getResultsAsString();
+				"select * from Jugador-Jugo->Equipo where Equipo.Nombre = 'Alfa'");
+		System.out.println(test.getResultsAsString());
 
 	}
 
@@ -123,11 +123,18 @@ public class Test {
 			finalQuery.append(condition);
 		}
 
-		finalQuery.append(" RETURN ");
+		finalQuery.append(" WITH ");
+		
+		final List<String> collect = new ArrayList<>(returnSelect.size());
+		
+		returnSelect.forEach(rs -> collect.add("collect(" + rs + ")"));
 
-		joinAndAppend(new ArrayList<>(returnSelect), ", ", finalQuery);
+		joinAndAppend(new ArrayList<>(collect), " + ", finalQuery);
+		
+		finalQuery.append(" AS result0 UNWIND result0 AS result RETURN DISTINCT result");
+		
 		System.out.println(finalQuery);
-		return Dao.query(finalQuery.toString(), filter).toString();
+		return Dao.query(finalQuery.toString(), filter);
 	}
 
 	private Predicate<org.neo4j.graphdb.Node> parseTemporal(final Temp_modifierContext tmc) {
