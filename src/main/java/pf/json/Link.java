@@ -1,15 +1,14 @@
 package pf.json;
 
-import org.neo4j.graphdb.Relationship;
 
 public class Link {
 
     private final long source;
     private final long target;
 
-    public Link(final Relationship relationship) {
-	source = relationship.getStartNode().getId();
-	target = relationship.getEndNode().getId();
+    public Link(final int source, final int target) {
+	this.source = source;
+	this.target = target;
     }
 
     public long getSource() {

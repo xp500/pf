@@ -19,8 +19,7 @@ public class Snapshot implements Predicate<Node> {
 	final String from = limits[0];
 	final String to = limits[1];
 	
-	return (snapshot.compareTo(from) >= 0 || from.equals("inf"))
-		&& (snapshot.compareTo(to) <= 0 || to.equals("inf"));
+	return snapshot.compareTo(from) >= 0 && (snapshot.compareTo(to) <= 0 || to.equals("inf"));
     }
 
 }

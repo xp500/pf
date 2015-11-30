@@ -58,7 +58,7 @@ public class Test {
 	public static void main(String[] args) throws IOException {
 
 		Test test = new Test(
-				"select * from Jugador-Jugo->Equipo where Equipo.Nombre = 'Alfa'");
+				"select * from Jugador-Jugo->Equipo where Jugo.Numero = 3 AND Equipo.Nombre = 'Alfa'");
 		System.out.println(test.getResultsAsString());
 
 	}
