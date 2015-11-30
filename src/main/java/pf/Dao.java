@@ -31,7 +31,7 @@ public class Dao {
     public static String query(final String q, final Predicate<Node> filter) {
 	final Set<Long> visitedNodes = new HashSet<>();
 	final List<JsonNode> nodes = new ArrayList<>();
-	final List<Relationship> relationships = new ArrayList<>();
+	final Set<Relationship> relationships = new HashSet<>();
 	final List<Link> links = new ArrayList<>();
 	try (final Transaction ignored = DB.beginTx(); final Result result = DB.execute(q)) {
 	    result.forEachRemaining(r -> {
