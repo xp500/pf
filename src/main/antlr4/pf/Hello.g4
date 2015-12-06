@@ -35,7 +35,7 @@ condition
 	: expr
 	| condition BINARY_BOOLEAN_OPERATOR condition
 	| 'not' condition;
-BINARY_BOOLEAN_OPERATOR : 'and' | 'or';
+BINARY_BOOLEAN_OPERATOR : 'AND' | 'OR';
 expr : res COMP res;
 COMP
 	: '='
@@ -45,15 +45,18 @@ COMP
 	| '<='
 	| '>=';
 res : arg (OPER arg)?;
-arg : CTE | attribute_representation;
+arg : cte | attribute_representation;
 OPER : '+' | '-' | '*' | '/';
 attribute_representation : ID '.' ID; // TODO: Va todo junto
 
 temp_modifier : 'SNAPSHOT' MOMENT | 'IN' interval;
 
-MOMENT : NUMBER ('-' NUMBER ('-' NUMBER ('-' NUMBER (':' NUMBER (':' NUMBER)?)?)?)?)?;
-interval : NUMBER '-' NUMBER;
+NAT: [0-9]+;
+moment : NAT ('-' NAT ('-' NAT ('-' NAT (':' NAT (':' NAT)?)?)?)?)?;
+interval : MOMENT '-' MOMENT;
 
 ID : [a-zA-Z][a-zA-Z0-9]*;
-CTE: '\''.*'\'' | NUMBER;
-NUMBER : [0-9]+;
+STR: '\''.*'\'';
+NUMBER : '-'?[0-9]+('.'[0-9]+)?;
+number : NAT | NUMBER;
+cte : STR | number;

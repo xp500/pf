@@ -151,7 +151,7 @@ public class Test {
 	}
 
 	private static Predicate<org.neo4j.graphdb.Node> parseInterval(final IntervalContext interval) {
-		return new Interval(interval.NUMBER(0).getText(), interval.NUMBER(1).getText());
+		return new Interval(interval.MOMENT(0).getText(), interval.MOMENT(1).getText());
 	}
 
 	private static void joinAndAppend(final List<?> l, final String separator, final StringBuilder strBuilder) {
@@ -171,11 +171,11 @@ public class Test {
 		if (conditions.size() == 1) {
 			return new NotCondition(parseCondition(conditions.get(0)));
 		}
-		if (condition.BINARY_BOOLEAN_OPERATOR().getText().equals("and")) {
+		if (condition.BINARY_BOOLEAN_OPERATOR().getText().equals("AND")) {
 			return new AndCondition(parseCondition(conditions.get(0)), parseCondition(conditions.get(1)));
 		}
 
-		if (condition.BINARY_BOOLEAN_OPERATOR().getText().equals("or")) {
+		if (condition.BINARY_BOOLEAN_OPERATOR().getText().equals("OR")) {
 			return new OrCondition(parseCondition(conditions.get(0)), parseCondition(conditions.get(1)));
 		}
 
