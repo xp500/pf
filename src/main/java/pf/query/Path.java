@@ -92,8 +92,8 @@ public class Path {
 
 	private static final String TYPE = "ATRIBUTO";
 
-	public AttributeNode(final String name) {
-	    super(name, "", TYPE);
+	public AttributeNode(final String name, final String alias) {
+	    super(name, alias, TYPE);
 	}
 
 	@Override
@@ -103,10 +103,24 @@ public class Path {
 
     }
 
+    public static class ReferenceNode implements Node {
+
+	private final String ref;
+
+	public ReferenceNode(final String ref) {
+	    this.ref = ref;
+	}
+
+	@Override
+	public String toString() {
+	    return String.format("(%s)", ref);
+	}
+    }
+
     public static class AllAttributesNode extends AttributeNode {
 
 	public AllAttributesNode(final String name) {
-	    super(name);
+	    super(name, name);
 	}
 
 	@Override

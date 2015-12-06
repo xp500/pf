@@ -32,7 +32,7 @@ public class AttributeList implements AttributeListOrAll {
     private void getPaths(final Node node, final List<Path> ans) {
 	// TODO: Add name parameter?
 	ans.add(Path.singleElementPath(node)
-	    .append(new AttributeNode(id), Path.singleElementPath(new ValueNode("ASD"))));
+	    .append(new AttributeNode(id, id), Path.singleElementPath(new ValueNode("ASD"))));
 	if (followingAttributes != null) {
 	    followingAttributes.getPaths(node, ans);
 	}
