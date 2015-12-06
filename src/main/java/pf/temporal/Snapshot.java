@@ -14,12 +14,19 @@ public class Snapshot implements Predicate<Node> {
 
     @Override
     public boolean test(final Node t) {
-	final String prop = ((String) t.getProperty("interval")).replace("[", "").replace("]", "");
-	final String[] limits = prop.split(", ");
-	final String from = limits[0];
-	final String to = limits[1];
-	
-	return snapshot.compareTo(from) >= 0 && (snapshot.compareTo(to) <= 0 || to.equals("inf"));
+	final String[] intervals = ((String) t.getProperty("interval")).split("\\], \\[");
+	for (final String interval : intervals) {
+	    final String prop = interval.replace("[", "").replace("]", "");
+	    final String[] limits = prop.split(", ");
+	    final String from = limits[0];
+	    final String to = limits[1];
+
+	    if (snapshot.compareTo(from) >= 0 && (snapshot.compareTo(to) <= 0 || to.equals("inf"))) {
+		return true;
+	    }
+	}
+
+	return false;
     }
 
 }
