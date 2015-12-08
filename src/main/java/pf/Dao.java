@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -21,8 +20,8 @@ import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
+import pf.json.JsonExpandedNode;
 import pf.json.JsonGraph;
-import pf.json.JsonNode;
 import pf.json.Link;
 
 import com.google.gson.Gson;
@@ -51,8 +50,8 @@ public class Dao {
 	    });
 
 	    relationships.stream().filter(
-		r -> graph.nodes.containsKey(r.getStartNode().getId())
-			&& graph.nodes.containsKey(r.getEndNode().getId())).filter(
+		r -> graph.getNodes().containsKey(r.getStartNode().getId())
+			&& graph.getNodes().containsKey(r.getEndNode().getId())).filter(
 		rel -> getLabel(rel.getEndNode()).equals("ARISTA")).forEach(rel -> {
 		final Node from = rel.getStartNode();
 		final Node to = rel.getEndNode();
@@ -72,8 +71,8 @@ public class Dao {
 	    });
 
 	    relationships.stream().filter(
-		r -> graph.nodes.containsKey(r.getStartNode().getId())
-			&& graph.nodes.containsKey(r.getEndNode().getId())).filter(
+		r -> graph.getNodes().containsKey(r.getStartNode().getId())
+			&& graph.getNodes().containsKey(r.getEndNode().getId())).filter(
 		rel -> getLabel(rel.getEndNode()).equals("VALOR")).forEach(rel -> {
 		final Node nodoAtributo = rel.getStartNode();
 		final Node to = rel.getEndNode();
@@ -90,11 +89,11 @@ public class Dao {
 	    graph.clean(filter);
 
 	    final Map<Long, Integer> nodePositions = new HashMap<>();
-	    final List<JsonNode> nodes = new ArrayList<>();
+	    final List<JsonExpandedNode> nodes = new ArrayList<>();
 	    final List<Link> links = new ArrayList<>();
 
-	    graph.nodes.forEach((l, n) -> {
-		nodes.add(new JsonNode(n));
+	    graph.getNodes().forEach((l, n) -> {
+		nodes.add(new JsonExpandedNode(n));
 		nodePositions.put(l, nodePositions.size());
 	    });
 
@@ -104,7 +103,7 @@ public class Dao {
 		rel -> links.add(new Link(nodePositions.get(rel.getStartNode().getId()), nodePositions.get(rel
 		    .getEndNode().getId()))));
 
-	    final JsonGraph g = new JsonGraph(nodes, links);
+	    final JsonGraph<JsonExpandedNode> g = new JsonGraph<>(nodes, links);
 	    return gson.toJson(g);
 	}
     }
@@ -142,148 +141,6 @@ public class Dao {
 	}
 
 	return rel;
-    }
-
-    private static class Graph {
-
-	private final Map<Long, Node> nodes = new HashMap<>();
-
-	private final Map<Long, NodoObjeto> nodosObjeto = new HashMap<>();
-
-	private final Map<Long, NodoArista> nodosArista = new HashMap<>();
-
-	private class Nodo {
-
-	    protected final long id;
-
-	    Nodo(final long id) {
-		this.id = id;
-	    }
-
-	    public void clean() {
-		nodes.remove(id);
-	    }
-	}
-
-	private class NodoObjeto extends Nodo {
-
-	    protected final Map<Long, NodoAtributo> atributos = new HashMap<>();
-
-	    public NodoObjeto(long id) {
-		super(id);
-	    }
-
-	    @Override
-	    public void clean() {
-		super.clean();
-		final Iterator<Long> it0 = atributos.keySet().iterator();
-		while (it0.hasNext()) {
-		    final Long id = it0.next();
-		    atributos.get(id).clean();
-		    it0.remove();
-		    nodes.remove(id);
-		}
-	    }
-
-	}
-
-	private class NodoArista extends NodoObjeto {
-
-	    private final NodoObjeto from;
-	    private final NodoObjeto to;
-
-	    public NodoArista(final long id, final NodoObjeto from, final NodoObjeto to) {
-		super(id);
-		this.from = from;
-		this.to = to;
-	    }
-
-	    @Override
-	    public void clean() {
-		super.clean();
-		from.clean();
-	    }
-
-	}
-
-	private class NodoAtributo extends Nodo {
-
-	    private final List<Long> nodosValor = new ArrayList<>();
-
-	    public NodoAtributo(long id) {
-		super(id);
-	    }
-
-	    @Override
-	    public void clean() {
-		super.clean();
-		nodosValor.forEach(n -> nodes.remove(n));
-	    }
-
-	}
-
-	public void addNodoObjeto(final long id) {
-	    nodosObjeto.put(id, new NodoObjeto(id));
-	}
-
-	public void addNodo(final Node node) {
-	    nodes.put(node.getId(), node);
-	}
-
-	public void clean(final Predicate<Node> filter) {
-	    final Iterator<Entry<Long, NodoArista>> it0 = nodosArista.entrySet().iterator();
-	    while (it0.hasNext()) {
-		final Entry<Long, NodoArista> entry = it0.next();
-		final long id = entry.getKey();
-		final Node n = nodes.get(id);
-		if (!filter.test(n)) {
-		    entry.getValue().clean();
-		    it0.remove();
-		    nodes.remove(id);
-		}
-	    }
-	    
-	    final Iterator<Entry<Long, NodoObjeto>> it1 = nodosObjeto.entrySet().iterator();
-	    while (it1.hasNext()) {
-		final Entry<Long, NodoObjeto> entry = it1.next();
-		final Long id = entry.getKey();
-		final Node n = nodes.get(id);
-		if (n == null) {
-		    it1.remove();
-		} else if (!filter.test(n)) {
-		    entry.getValue().clean();
-		    it1.remove();
-		    nodes.remove(id);
-		}
-	    }
-
-	}
-
-	public void addNodoValor(long nodoObjetoOrArista, long nodoAtributo, long nodoValor) {
-	    if (nodosObjeto.containsKey(nodoObjetoOrArista)) {
-		final Map<Long, NodoAtributo> attributes = nodosObjeto.get(nodoObjetoOrArista).atributos;
-		final NodoAtributo na = attributes.getOrDefault(nodoAtributo, new NodoAtributo(nodoAtributo));
-		na.nodosValor.add(nodoValor);
-		attributes.put(nodoAtributo, na);
-	    } else if (nodosArista.containsKey(nodoObjetoOrArista)) {
-		final Map<Long, NodoAtributo> attributes = nodosArista.get(nodoObjetoOrArista).atributos;
-		final NodoAtributo na = attributes.getOrDefault(nodoAtributo, new NodoAtributo(nodoAtributo));
-		na.nodosValor.add(nodoValor);
-		attributes.put(nodoAtributo, na);
-	    } else {
-		throw new AssertionError("ERROR!");
-	    }
-
-	}
-
-	public void addNodoArista(final long id, final long from, final long to) {
-	    if (!nodosObjeto.containsKey(from) || !nodosObjeto.containsKey(from)) {
-		throw new AssertionError("ERROR!");
-	    }
-
-	    nodosArista.put(id, new NodoArista(id, nodosObjeto.get(from), nodosObjeto.get(to)));
-	}
-
     }
 
 }

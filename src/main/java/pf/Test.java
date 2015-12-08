@@ -29,6 +29,7 @@ import pf.HelloParser.Inbound_enhanced_pathContext;
 import pf.HelloParser.Inbound_pathContext;
 import pf.HelloParser.IntervalContext;
 import pf.HelloParser.List_of_pathContext;
+import pf.HelloParser.MomentContext;
 import pf.HelloParser.Outbound_enhanced_pathContext;
 import pf.HelloParser.Outbound_pathContext;
 import pf.HelloParser.PathContext;
@@ -59,7 +60,7 @@ public class Test {
 	public static void main(String[] args) throws IOException {
 
 		Test test = new Test(
-				"select * from Jugador-Jugo->Equipo where Jugo.Numero = 3 AND Equipo.Nombre = 'Alfa'");
+				"select * from Jugador-Jugo->Equipo where Equipo.Nombre = 'Alfa' IN 1986 - 1989");
 		System.out.println(test.getResultsAsString());
 
 	}
@@ -138,21 +139,21 @@ public class Test {
 		return Dao.query(finalQuery.toString(), filter);
 	}
 
-	private Predicate<org.neo4j.graphdb.Node> parseTemporal(final Temp_modifierContext tmc) {
-		final TerminalNode moment = tmc.MOMENT();
+	private static Predicate<org.neo4j.graphdb.Node> parseTemporal(final Temp_modifierContext tmc) {
+		final MomentContext moment = tmc.moment();
 		if (moment == null) {
 			return parseInterval(tmc.interval());
 		} else {
-			return parseSnapshot(tmc.MOMENT());
+			return parseSnapshot(tmc.moment());
 		}
 	}
 
-	private static Predicate<org.neo4j.graphdb.Node> parseSnapshot(final TerminalNode snapshot) {
+	private static Predicate<org.neo4j.graphdb.Node> parseSnapshot(final MomentContext snapshot) {
 		return new Snapshot(snapshot.getText());
 	}
 
 	private static Predicate<org.neo4j.graphdb.Node> parseInterval(final IntervalContext interval) {
-		return new Interval(interval.MOMENT(0).getText(), interval.MOMENT(1).getText());
+		return new Interval(interval.moment(0).getText(), interval.moment(1).getText());
 	}
 
 	private static void joinAndAppend(final List<?> l, final String separator, final StringBuilder strBuilder) {

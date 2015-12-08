@@ -49,11 +49,11 @@ arg : cte | attribute_representation;
 OPER : '+' | '-' | '*' | '/';
 attribute_representation : ID '.' ID; // TODO: Va todo junto
 
-temp_modifier : 'SNAPSHOT' MOMENT | 'IN' interval;
+temp_modifier : 'SNAPSHOT' moment | 'IN' interval;
 
 NAT: [0-9]+;
 moment : NAT ('-' NAT ('-' NAT ('-' NAT (':' NAT (':' NAT)?)?)?)?)?;
-interval : MOMENT '-' MOMENT;
+interval : moment '-' moment;
 
 ID : [a-zA-Z][a-zA-Z0-9]*;
 STR: '\''.*'\'';
