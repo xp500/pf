@@ -113,13 +113,14 @@ public class Test {
 
 		final List<Path> finalFrom = new ArrayList<>(fromElement.size() + extraFrom.size() + whereElemnt.size());
 		finalFrom.addAll(fromElement);
-		finalFrom.addAll(extraFrom);
+//		finalFrom.addAll(extraFrom);
 		finalFrom.addAll(whereElemnt);
 
 		final StringBuilder finalQuery = new StringBuilder();
 		finalQuery.append("MATCH ");
 		joinAndAppend(finalFrom, ", ", finalQuery);
-
+		finalQuery.append(" OPTIONAL MATCH ");
+		joinAndAppend(extraFrom, " OPTIONAL MATCH ", finalQuery);
 		if (condition != null) {
 			finalQuery.append(" WHERE ");
 			finalQuery.append(condition);
