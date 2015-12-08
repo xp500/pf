@@ -28,9 +28,8 @@ import com.google.gson.Gson;
 
 public class Dao {
 
-    // private static File DB_FILE = new
-    // File("/Users/alcampos/Downloads/db.db");
-    private static File DB_FILE = new File("C:\\Users\\Jorge\\Desktop\\db.db");
+     private static File DB_FILE = new File("/Users/alcampos/Downloads/db.db");
+//    private static File DB_FILE = new File("C:\\Users\\Jorge\\Desktop\\db.db");
     private static GraphDatabaseService DB = new GraphDatabaseFactory().newEmbeddedDatabase(DB_FILE);
     private static Gson gson = new Gson();
 
