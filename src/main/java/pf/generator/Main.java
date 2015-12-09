@@ -108,8 +108,10 @@ public class Main {
 								startYear);
 
 						stadiumSet.add(stadiumNode);
-
+						
+						final String format = "[%d, inf]";
 						final Map<String, Object> prop = new HashMap<>();
+						prop.put("interval", String.format(format, startYear));
 						prop.put("title", "Dueno");
 						final Node arista = createNode(NodeType.ARISTA, prop);
 
@@ -151,7 +153,9 @@ public class Main {
 
 						stadiumSet.add(stadiumNode);
 
+						final String format = "[%d, inf]";
 						final Map<String, Object> prop = new HashMap<>();
+						prop.put("interval", String.format(format, startYear));
 						prop.put("title", "Dueno");
 						final Node arista = createNode(NodeType.ARISTA, prop);
 
@@ -175,7 +179,7 @@ public class Main {
 	}
 
 	private Node createWantedToPlayeNode(int startYear) {
-		final String format = "[%d, Inf]";
+		final String format = "[%d, inf]";
 		final Map<String, Object> playerProperties = new HashMap<>();
 		playerProperties.put("title", "QuiereJugar");
 		playerProperties.put("interval", String.format(format, startYear));
@@ -221,6 +225,7 @@ public class Main {
 
 	private void updatePlayedNode(final Node playedNode, int startYear, int yearsInTeam, String position, int num) {
 		final String format = ", [%d, %d]";
+		final String cleanFormat = "[%d, %d]";
 		playedNode.setProperty("interval",
 				playedNode.getProperty("interval") + String.format(format, startYear, startYear + yearsInTeam));
 
@@ -250,7 +255,7 @@ public class Main {
 				if (l2.isEmpty()) {
 					final Map<String, Object> valueProperties = new HashMap<>();
 					valueProperties.put("title", position);
-					valueProperties.put("interval", String.format(format, startYear, startYear + yearsInTeam));
+					valueProperties.put("interval", String.format(cleanFormat, startYear, startYear + yearsInTeam));
 					final Node positionNode = createNode(NodeType.VALOR, valueProperties);
 
 					createRelationship(node, positionNode);
@@ -274,7 +279,7 @@ public class Main {
 				if (l2.isEmpty()) {
 					final Map<String, Object> valueProperties = new HashMap<>();
 					valueProperties.put("title", num);
-					valueProperties.put("interval", String.format(format, startYear, startYear + yearsInTeam));
+					valueProperties.put("interval", String.format(cleanFormat, startYear, startYear + yearsInTeam));
 					final Node positionNode = createNode(NodeType.VALOR, valueProperties);
 
 					createRelationship(node, positionNode);
