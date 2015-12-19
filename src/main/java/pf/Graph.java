@@ -2,10 +2,12 @@ package pf;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import org.neo4j.graphdb.Node;
@@ -34,7 +36,7 @@ public class Graph {
 	    nodes.remove(id);
 	}
     }
-    
+
     private class NodoObjeto extends Nodo {
 
 	protected final Map<Long, NodoAtributo> atributos = new HashMap<>();
@@ -44,13 +46,12 @@ public class Graph {
 	public NodoObjeto(long id) {
 	    super(id);
 	}
-	
-	
+
 	public void incConnections() {
 	    connected = true;
 	    connections++;
 	}
-	
+
 	public void decConnections() {
 	    connections--;
 	}
@@ -114,17 +115,42 @@ public class Graph {
     }
 
     public void clean(final Predicate<Node> filter) {
-	final Iterator<Entry<Long, NodoArista>> it0 = nodosArista.entrySet().iterator();
+	final Map<Long, Set<Long>> removedEdges = new HashMap<>();
+	{final Iterator<Entry<Long, NodoArista>> it0 = nodosArista.entrySet().iterator();
 	while (it0.hasNext()) {
 	    final Entry<Long, NodoArista> entry = it0.next();
 	    final long id = entry.getKey();
 	    final Node n = nodes.get(id);
+	    final NodoArista nodoArista = entry.getValue();
+	    final long from = nodoArista.from.id;
+	    final long to = nodoArista.to.id;
+
 	    if (!filter.test(n)) {
-		entry.getValue().clean();
+		nodoArista.clean();
 		it0.remove();
+		nodes.remove(id);
+
+		final Set<Long> re = removedEdges.getOrDefault(from, new HashSet<>());
+		re.add(to);
+		removedEdges.put(from, re);
+	    }
+	}}
+	
+	final Iterator<Entry<Long, NodoArista>> it2 = nodosArista.entrySet().iterator();
+	while (it2.hasNext()) {
+	    final Entry<Long, NodoArista> entry = it2.next();
+	    final long id = entry.getKey();
+	    final NodoArista nodoArista = entry.getValue();
+	    final long from = nodoArista.from.id;
+	    final long to = nodoArista.to.id;
+
+	    if (removedEdges.getOrDefault(from, new HashSet<>()).contains(to)) {
+		nodoArista.clean();
+		it2.remove();
 		nodes.remove(id);
 	    }
 	}
+	
 
 	final Iterator<Entry<Long, NodoObjeto>> it1 = nodosObjeto.entrySet().iterator();
 	while (it1.hasNext()) {
