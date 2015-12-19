@@ -1,7 +1,8 @@
 package pf;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import pf.query.Path;
 import pf.query.Path.Edge;
@@ -26,17 +27,31 @@ public class EnhancedElement implements Node, Edge {
 	return id;
     }
 
-    public List<Path> getAttributePaths() {
+    public List<Path> getAttributePaths(final Set<String> returnSelect) {
 	if (attrs == null) {
-	    return Collections.emptyList();
+		final Path path = Path.singleElementPath(this);
+		returnSelect.add(((EnhancedElement) this).getId());
+		final List<Path> paths = new ArrayList<>(1);
+		paths.add(path);
+	    return paths;
 	}
 
-	return attrs.getPaths(this);
+	return attrs.getPaths(this, returnSelect);
     }
 
     @Override
     public Direction getDirection() {
 	return Direction.RIGHT;
     }
+    
+    @Override
+    public String toString() {
+    	return id;
+    }
+
+	@Override
+	public String simpleToString() {
+		return id;
+	}
 
 }

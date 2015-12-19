@@ -60,7 +60,7 @@ public class Test {
 	public static void main(String[] args) throws IOException {
 
 		Test test = new Test(
-				"select * from Jugador-Jugo->Equipo where Equipo.Nombre = 'Alfa' IN 1986 - 1989");
+				"select Jugador,Equipo(*) from Jugador-Jugo->Equipo where Equipo.Nombre = 'Alfa'");
 		System.out.println(test.getResultsAsString());
 
 	}
@@ -68,7 +68,7 @@ public class Test {
 	private final RContext root;
 	private final List<Path> fromElement = new ArrayList<>();
 	private final List<Path> whereElemnt = new ArrayList<>();
-	private IncremetalStringGenerator generator;
+	private static IncremetalStringGenerator generator;
 
 	private final Map<String, String> nameToAlias = new HashMap<>();
 	private final Map<String, String> aliasToName = new HashMap<>();
@@ -82,6 +82,10 @@ public class Test {
 		HelloParser parser = new HelloParser(tokens);
 		RContext tree = parser.r();
 		this.root = tree;
+	}
+	
+	public static IncremetalStringGenerator getGenerator() {
+		return generator;
 	}
 
 	public String getResultsAsString() {
@@ -128,9 +132,14 @@ public class Test {
 
 		finalQuery.append(" WITH ");
 		
-		final List<String> collect = new ArrayList<>(returnSelect.size());
-		
-		returnSelect.forEach(rs -> collect.add("collect(" + rs + ")"));
+		final List<String> collect;
+		if (returnSelectOnlyFrom.isEmpty()) {
+			collect = new ArrayList<>(returnSelect.size());
+			returnSelect.forEach(rs -> collect.add("collect(" + rs + ")"));
+		} else {
+			collect = new ArrayList<>(returnSelectOnlyFrom.size());
+			returnSelectOnlyFrom.forEach(rs -> collect.add("collect(" + rs + ")"));
+		}
 
 		joinAndAppend(new ArrayList<>(collect), " + ", finalQuery);
 		
@@ -246,6 +255,7 @@ public class Test {
 
 	private List<Path> extraFrom = new ArrayList<>();
 	private Set<String> returnSelect = new HashSet<>();
+	private Set<String> returnSelectOnlyFrom = new HashSet<>();
 
 	private void parseSelect(final Enhanced_list_of_paths_or_allContext pathOrAll) {
 		if (pathOrAll.getText().equals("*")) {
@@ -257,14 +267,24 @@ public class Test {
 
 	private void insertAttributesToFrom(final Enhanced_list_of_pathsContext paths) {
 		final Path enhancedPath = parseEnhancedPath(paths.enhanced_path());
+		boolean isInFrom = false;
+		for(Path p : fromElement) {
+			if (p.simpleToString().contains(enhancedPath.simpleToString())) {
+				isInFrom = true;
+			}
+		}
+		if (!isInFrom) {
+			throw new AssertionError("The path: " + enhancedPath.simpleToString() + " no esta en el from!");
+		}
+
 		for (final Node n : enhancedPath.getNodes()) {
 			final EnhancedElement ee = (EnhancedElement) n;
-			extraFrom.addAll(ee.getAttributePaths());
+			extraFrom.addAll(ee.getAttributePaths(returnSelectOnlyFrom));
 		}
 
 		for (final Edge e : enhancedPath.getEdges()) {
 			final EnhancedElement ee = (EnhancedElement) e;
-			extraFrom.addAll(ee.getAttributePaths());
+			extraFrom.addAll(ee.getAttributePaths(returnSelectOnlyFrom));
 		}
 
 		final Enhanced_list_of_pathsContext elopc = paths.enhanced_list_of_paths();
