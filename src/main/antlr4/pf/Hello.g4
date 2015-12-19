@@ -56,7 +56,7 @@ moment : NAT ('-' NAT ('-' NAT ('-' NAT (':' NAT (':' NAT)?)?)?)?)?;
 interval : moment '-' moment;
 
 ID : [a-zA-Z][a-zA-Z0-9]*;
-STR: '\''.*'\'';
+STR: '\''~'\''*'\'';
 NUMBER : '-'?[0-9]+('.'[0-9]+)?;
 number : NAT | NUMBER;
 cte : STR | number;
