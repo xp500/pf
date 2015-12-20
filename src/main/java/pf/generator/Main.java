@@ -424,6 +424,16 @@ public class Main {
 
 	private static Relationship createRelationship(final Node from, Node to) {
 		final Relationship rel = from.createRelationshipTo(to, RelType.ARISTA);
+		
+		final Label fromLabel = from.getLabels().iterator().next();
+		final Label toLabel = to.getLabels().iterator().next();
+		
+		if (fromLabel.equals(NodeType.ARISTA) && toLabel.equals(NodeType.OBJETO)) {
+		    rel.setProperty("title", from.getProperty("title"));
+		} else if (toLabel.equals(NodeType.ARISTA) && fromLabel.equals(NodeType.OBJETO)) {
+		    rel.setProperty("title", to.getProperty("title"));
+		}
+		
 		return rel;
 	}
 }

@@ -32,6 +32,8 @@ public class Path {
 		private final static String TYPE = "ARISTA";
 
 		private final Direction direction;
+		
+		private String multiple;
 
 		public EdgeOrAlias(final String edge, final Direction direction) {
 			this(edge, edge, direction);
@@ -40,6 +42,10 @@ public class Path {
 		public EdgeOrAlias(final String edge, final String alias, final Direction direction) {
 			super(edge, alias, TYPE);
 			this.direction = direction;
+		}
+		
+		public void setMultiple(String multiple) {
+		    this.multiple = String.format(multiple, alias);
 		}
 
 		@Override
@@ -218,15 +224,37 @@ public class Path {
 			final Edge edge = edges.get(i - 1);
 			final Node node = nodes.get(i);
 			final String direction;
+			final String maybeMultipleDirection;
 			if (edge.getDirection() == Direction.RIGHT) {
-				direction = "-->";
+			    direction = "-->";
+			    if (edge instanceof EdgeOrAlias) {
+				final EdgeOrAlias eoa = (EdgeOrAlias) edge;
+				if (eoa.multiple == null) {
+				    maybeMultipleDirection = direction;
+				} else {
+				    maybeMultipleDirection = "-" + eoa.multiple + "->";
+				}
+			    } else {
+				maybeMultipleDirection = direction;
+			    }
 			} else {
-				direction = "<--";
+			    direction = "<--";
+			    if (edge instanceof EdgeOrAlias) {
+				final EdgeOrAlias eoa = (EdgeOrAlias) edge;
+				if (eoa.multiple == null) {
+				    maybeMultipleDirection = direction;
+				} else {
+				    maybeMultipleDirection = "<-" + eoa.multiple + "-";
+				}
+			    } else {
+				maybeMultipleDirection = direction;
+			    }
 			}
 
-			str.append(direction).append(edge.toString()).append(direction).append(node.toString());
+			str.append(direction).append(edge.toString()).append(maybeMultipleDirection).append(node.toString());
 		}
 
 		return str.toString();
 	}
+	
 }

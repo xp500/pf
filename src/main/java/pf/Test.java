@@ -60,7 +60,7 @@ public class Test {
 	public static void main(String[] args) throws IOException {
 
 		Test test = new Test(
-				"select Jugador,Equipo(*) from Jugador-Jugo->Equipo where Equipo.Nombre = 'Alfa'");
+				"select * from Jugador-Jugo[1..4]->Equipo");
 		System.out.println(test.getResultsAsString());
 
 	}
@@ -387,15 +387,33 @@ public class Test {
 		final EdgeOrAlias edge = parseEdgeOrAlias(outboundPath.element_or_alias(1), EdgeOrAlias.Direction.RIGHT);
 		final Path path = parsePath(outboundPath.path());
 		checkAliases(node, edge);
+		final TerminalNode multiplePath = outboundPath.MULTIPLE_PATH();
+		if (multiplePath != null) {
+		    edge.setMultiple(parseMultiple(multiplePath.getText()));
+		}
+		
 		return Path.singleElementPath(node).append(edge, path);
 	}
-
+	
 	private Path parseInboundPath(final Inbound_pathContext inboundPath) {
 		final NodeOrAlias node = parseNodeOrAlias(inboundPath.element_or_alias(0));
 		final EdgeOrAlias edge = parseEdgeOrAlias(inboundPath.element_or_alias(1), EdgeOrAlias.Direction.LEFT);
 		final Path path = parsePath(inboundPath.path());
 		checkAliases(node, edge);
+		final TerminalNode multiplePath = inboundPath.MULTIPLE_PATH();
+		if (multiplePath != null) {
+		    edge.setMultiple(parseMultiple(multiplePath.getText()));
+		}
+		
 		return Path.singleElementPath(node).append(edge, path);
+	}
+	
+	private static String parseMultiple(final String multiple) {
+	    final String[] split = multiple.replace("[", "").replace("]", "").split("\\.\\.");
+	    final int from = Integer.parseInt(split[0].trim());
+	    final int to = Integer.parseInt(split[1].trim());
+	    
+	    return String.format("[* %d..%d {title: '%%s'}]", from * 2 - 1, to * 2 - 1);
 	}
 
 	private void checkAliases(final ElementOrAlias... elementOrAlias) {
@@ -414,6 +432,7 @@ public class Test {
 		if (elementOrAlias != null) {
 			final NodeOrAlias eoa = parseNodeOrAlias(elementOrAlias);
 			checkAliases(eoa);
+			
 			return Path.singleElementPath(eoa);
 		}
 

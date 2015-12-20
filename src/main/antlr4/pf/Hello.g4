@@ -25,10 +25,11 @@ path
 	: element_or_alias
 	| outbound_path
 	| inbound_path;
-outbound_path : element_or_alias '-' element_or_alias '->' path;
-inbound_path : element_or_alias '<-' element_or_alias '-' path;
+outbound_path : element_or_alias '-' element_or_alias MULTIPLE_PATH? '->' path;
+inbound_path : element_or_alias '<-' element_or_alias MULTIPLE_PATH? '-' path;
 
 element_or_alias : ID ('as' ID)?;
+MULTIPLE_PATH : '[' [1-9][0-9]* '..' [1-9][0-9]* ']';
 
 // Where
 condition
