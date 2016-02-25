@@ -1,17 +1,15 @@
 package pf.generator;
 
-import java.util.Arrays;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -19,421 +17,320 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.graphdb.traversal.Evaluators;
-import org.neo4j.graphdb.traversal.Traverser;
 
 public class Main {
 
-	public static int randInt(int min, int max) {
+    public static long randLong(long min, long max) {
+	return (long) (Math.random() * (max - min)) + min;
+    }
 
-		// NOTE: Usually this should be a field rather than a method
-		// variable so that it is not re-seeded every call.
-		Random rand = new Random();
+    private void createGraph() {
 
-		// nextInt is normally exclusive of the top value,
-		// so add 1 to make it inclusive
-		int randomNum = rand.nextInt((max - min) + 1) + min;
+	final String[] firstNames = {
+		"A", "B", "C", "D", "E", "F", "G",
+	};
+	final String[] lastNames = {
+		"H", "I", "J", "K", "L", "M", "N",
+	};
 
-		return randomNum;
-	}
+	final String[] friendCategory = {
+		"Family", "Work", "Best", "Acquaintance"
+	};
 
-	private void createGraph() {
-		final String[] teamNames = { "Alfa", "Beta", "Gamma", "Delta", "Epsilon", "Omega", "Eta", "Ro", "Teta",
-				"Zeta" };
-		final String[] playerNames = { "Rico Espinoza", "Chori Dominguez", "Gato Gonzales", "Rodrigo Pereira",
-				"Martin Curita", "Francisco Pascualichi", "Bruno Calani", "Pablo Rabinovich", "Pablo Caval",
-				"Labio Camargo", "Denis Cobani", "Facundo Vencela", "Juan Barullo", "Juan Champo", "Tiki tiki",
-				"Raul Corralez", "Deigo Cayan", "Hernan Venga", "Rodrigo Lopez Chato", "Facundo Cansancio",
-				"Mauricio Arqui", "Alfonso Zapato", "Robinson Cruzo" };
-		final String[] positionNames = { "Delantero", "Mediocampista", "Defensor" };
+	final int PEOPLE = 1000;
+	final int MAX_FRIENDS = 5;
+	final int MAX_BUILDINGS = 10;
+	final int BUILDINGS = 100;
 
-		final String[] stadiumNames = { "Alfa Stadium", "Beta Stadium", "Gamma Stadium", "Delta Stadium",
-				"Epsilon Stadium", "Omega Stadium", "Eta Stadium", "Ro Stadium", "Teta Stadium", "Zeta Stadium" };
+	final List<Node> people = new ArrayList<>(PEOPLE);
+	final List<Node> buildings = new ArrayList<>(BUILDINGS);
+	final Map<Node, Set<Node>> peopleFriends = new HashMap<>();
+	Transaction tx = null;
+	try {
+	    tx = gds.beginTx();
+	    System.out.println("CREATING PEOPLE");
+	    for (int i = 0; i < PEOPLE; i++) {
+		final String name = firstNames[randInt(0, firstNames.length)];
+		final String surname = lastNames[randInt(0, lastNames.length)];
+		final String fullName = String.format("%s %s", name, surname);
+		people.add(createPersonNode(fullName));
+		System.out.println("PERSON " + i + " CREATED");
+		if (i % 1000 == 0) {
+		    tx.success();
+		    tx.close();
+		    tx = gds.beginTx();
+		}
+	    }
+	    tx.success();
+	    tx.close();
+	    tx = gds.beginTx();
+	    System.out.println("DONE CREATING PEOPLE");
+	    System.out.println("CREATING BUILDINGS");
+	    for (int i = 0; i < BUILDINGS; i++) {
+		final String street = "Calle falsa";
+		final String number = "123";
+		buildings.add(createBuildingNode(street, number));
+		System.out.println("BUILDING " + i + " CREATED");
+		if (i % 1000 == 0) {
+		    tx.success();
+		    tx.close();
+		    tx = gds.beginTx();
+		}
+	    }
+	    tx.success();
+	    tx.close();
+	    tx = gds.beginTx();
+	    System.out.println("DONE CREATING BUILDINGS");
+	    for (int i = 0; i < people.size(); i++) {
+		final int current = i;
+		final Node personNode = people.get(i);
+		final Set<Node> friends = peopleFriends.getOrDefault(personNode, new HashSet<>());
+		if (friends.size() >= MAX_FRIENDS) {
+		    continue;
+		}
+		final int extraFriends = randInt(0, MAX_FRIENDS - friends.size());
 
-		final Map<String, int[]> posToNum = new HashMap<>();
-		posToNum.put("Delantero", new int[] { 8, 9, 10, 11 });
-		posToNum.put("Mediocampista", new int[] { 6, 7 });
-		posToNum.put("Defensor", new int[] { 2, 3, 4, 5 });
+		System.out.println("PERSON " + i + " WILL HAVE " + extraFriends + " FRIENDS");
 
-		final List<String> teams = Arrays.asList(teamNames);
-		final List<String> players = Arrays.asList(playerNames);
-		final List<String> positions = Arrays.asList(positionNames);
-
-		final Map<String, Node> playedMap = new HashMap<>();
-
-		final Map<String, Node> teamMap = new HashMap<>();
-
-		final Set<Node> stadiumSet = new HashSet<>();
-		final Set<Node> playerSet = new HashSet<>();
-
-		try (final Transaction tx = gds.beginTx()) {
-			// int x = 0;
-			for (final String player : players) {
-				// if (x == 1) {
-				// tx.success();
-				// return;
-				// }
-				// x++;
-				int yearsPlayed = randInt(7, 15);
-				int yearStarted = randInt(1980, 1990);
-				final Node playerObjectNode = createPlayerNode(player, yearStarted, yearsPlayed);
-
-				playerSet.add(playerObjectNode);
-
-				int teamsPlayed = randInt(1, yearsPlayed - 1);
-				int years = 0;
-				String lastTeam = null;
-				for (int i = 0; i < teamsPlayed; i++) {
-					int yearsInTeam;
-					if (i == teamsPlayed - 1) {
-						yearsInTeam = yearsPlayed - years;
-					} else {
-						yearsInTeam = randInt(1, yearsPlayed / teamsPlayed);
-						years += yearsInTeam;
-					}
-
-					String currentTeam;
-					do {
-						currentTeam = teamNames[randInt(0, teamNames.length - 1)];
-					} while (lastTeam == currentTeam);
-
-					lastTeam = currentTeam;
-
-					Node teamNode = teamMap.get(currentTeam);
-					if (teamNode == null) {
-						final int startYear = randInt(1900, 1950);
-						teamNode = createTeamNode(currentTeam, startYear);
-						teamMap.put(currentTeam, teamNode);
-						final Node stadiumNode = createStadiumNode(currentTeam + " Stadium", randInt(30000, 100000),
-								startYear);
-
-						stadiumSet.add(stadiumNode);
-						
-						final String format = "[%d, inf]";
-						final Map<String, Object> prop = new HashMap<>();
-						prop.put("interval", String.format(format, startYear));
-						prop.put("title", "Dueno");
-						final Node arista = createNode(NodeType.ARISTA, prop);
-
-						createRelationship(teamNode, arista);
-						createRelationship(arista, stadiumNode);
-					}
-					Node playedNode = playedMap.get(player + currentTeam);
-
-					final String position = positionNames[randInt(0, positionNames.length - 1)];
-					final int[] posibleNumbers = posToNum.get(position);
-					final int num = posibleNumbers[randInt(0, posibleNumbers.length - 1)];
-
-					if (playedNode == null) {
-						playedNode = createPlayedNode(yearStarted + years, yearsInTeam, position, num);
-						playedMap.put(player + currentTeam, playedNode);
-						createRelationship(playerObjectNode, playedNode);
-						createRelationship(playedNode, teamNode);
-					} else {
-						updatePlayedNode(playedNode, yearStarted + years, yearsInTeam, position, num);
-					}
-				}
-
-				int teamsWantedToPlay = randInt(1, teamNames.length/4);
-				Set<String> teamsWantedToPlayAdded = new HashSet<>();
-				for (int i = 0; i < teamsWantedToPlay; i++) {
-
-					String currentTeam;
-					do {
-						currentTeam = teamNames[randInt(0, teamNames.length - 1)];
-					} while (teamsWantedToPlayAdded.contains(currentTeam));
-					teamsWantedToPlayAdded.add(currentTeam);
-					Node teamNode = teamMap.get(currentTeam);
-					if (teamNode == null) {
-						final int startYear = randInt(1900, 1950);
-						teamNode = createTeamNode(currentTeam, startYear);
-						teamMap.put(currentTeam, teamNode);
-						final Node stadiumNode = createStadiumNode(currentTeam + " Stadium", randInt(30000, 100000),
-								startYear);
-
-						stadiumSet.add(stadiumNode);
-
-						final String format = "[%d, inf]";
-						final Map<String, Object> prop = new HashMap<>();
-						prop.put("interval", String.format(format, startYear));
-						prop.put("title", "Dueno");
-						final Node arista = createNode(NodeType.ARISTA, prop);
-
-						createRelationship(teamNode, arista);
-						createRelationship(arista, stadiumNode);
-					}
-
-					Node wantedToPlayeNode = createWantedToPlayeNode(yearStarted + years);
-					createRelationship(playerObjectNode, wantedToPlayeNode);
-					createRelationship(wantedToPlayeNode, teamNode);
-				}
-
+		for (int j = 0; j < extraFriends; j++) {
+		    final int newFriend = randInt(0, people.size());
+		    final Node newFriendNode = people.get(newFriend);
+		    if (!peopleFriends.getOrDefault(newFriendNode, new HashSet<>()).contains(personNode)
+			    && !friends.contains(newFriendNode) && newFriend != current) {
+			if (makeFriends(personNode, newFriendNode)) {
+			    friends.add(people.get(newFriend));
 			}
-
-			// for (final Node playerNode : playerSet) {
-			// for (fin)
-			// }
-
-			tx.success();
+		    }
 		}
-	}
-
-	private Node createWantedToPlayeNode(int startYear) {
-		final String format = "[%d, inf]";
-		final Map<String, Object> playerProperties = new HashMap<>();
-		playerProperties.put("title", "QuiereJugar");
-		playerProperties.put("interval", String.format(format, startYear));
-		final Node wantedToPlayNode = createNode(NodeType.ARISTA, playerProperties);
-		return wantedToPlayNode;
-	}
-
-	private Node createStadiumNode(String stadiumName, int capacity, final int startYear) {
-		final String format = "[%d, inf]";
-		final Map<String, Object> stadiumProperties = new HashMap<>();
-		stadiumProperties.put("title", "Estadio");
-		stadiumProperties.put("interval", String.format(format, startYear));
-		final Node stadiumNode = createNode(NodeType.OBJETO, stadiumProperties);
-		{
-			final Map<String, Object> attributeProperties = new HashMap<>();
-			attributeProperties.put("title", "Capacidad");
-			attributeProperties.put("interval", String.format(format, startYear));
-			final Node attributeNode = createNode(NodeType.ATRIBUTO, attributeProperties);
-			final Map<String, Object> valueProperties = new HashMap<>();
-			valueProperties.put("title", capacity);
-			valueProperties.put("interval", String.format(format, startYear));
-			final Node valueNode = createNode(NodeType.VALOR, valueProperties);
-
-			createRelationship(stadiumNode, attributeNode);
-			createRelationship(attributeNode, valueNode);
+		peopleFriends.put(people.get(current), friends);
+		System.out.println("FINISHED PERSON " + current);
+		if (current % 10 == 0) {
+		    tx.success();
+		    tx.close();
+		    tx = gds.beginTx();
 		}
-		{
-			final Map<String, Object> attributeProperties = new HashMap<>();
-			attributeProperties.put("title", "Nombre");
-			attributeProperties.put("interval", String.format(format, startYear));
-			final Node attributeNode = createNode(NodeType.ATRIBUTO, attributeProperties);
-			final Map<String, Object> valueProperties = new HashMap<>();
-			valueProperties.put("title", stadiumName);
-			valueProperties.put("interval", String.format(format, startYear));
-			final Node valueNode = createNode(NodeType.VALOR, valueProperties);
+	    }
 
-			createRelationship(stadiumNode, attributeNode);
-			createRelationship(attributeNode, valueNode);
+	    tx.success();
+	    tx.close();
+	    tx = gds.beginTx();
+	    System.out.println("DONE CREATING PEOPLE");
+	    for (int i = 0; i < people.size(); i++) {
+		final Node personNode = people.get(i);
+		final LocalDate birth = LocalDate.parse("1990-10-10", DateTimeFormatter.ISO_DATE);
+		final LocalDate death = LocalDate.parse("2015-10-10", DateTimeFormatter.ISO_DATE);
+		final int daysAlive = (int) birth.until(death, ChronoUnit.DAYS);
+		final int buildingsAmount = Math.min(randInt(1, MAX_BUILDINGS), daysAlive);
+
+		final List<Node> tmpBuildings = new ArrayList<>(buildings);
+
+		System.out.println("PERSON " + i + " WILL HAVE " + buildingsAmount + " BUILDINGS");
+
+		int remainingDays = daysAlive;
+
+		LocalDate nextStart = birth;
+		for (int j = 0; j < buildingsAmount; j++) {
+		    final int daysInBuilding;
+		    final Node building = tmpBuildings.remove(randInt(0, tmpBuildings.size()));
+		    if (j == buildingsAmount - 1) {
+			daysInBuilding = remainingDays;
+		    } else {
+			daysInBuilding = randInt(1, remainingDays - buildingsAmount + j + 1);
+		    }
+		    final LocalDate endDate = nextStart.plusDays(daysInBuilding);
+		    makeLiving(personNode, building, nextStart.format(DateTimeFormatter.ISO_DATE), endDate
+			.format(DateTimeFormatter.ISO_DATE));
+		    remainingDays -= daysInBuilding;
+		    nextStart = endDate.plusDays(1);
 		}
 
-		return stadiumNode;
-	}
-
-	private void updatePlayedNode(final Node playedNode, int startYear, int yearsInTeam, String position, int num) {
-		final String format = ", [%d, %d]";
-		final String cleanFormat = "[%d, %d]";
-		playedNode.setProperty("interval",
-				playedNode.getProperty("interval") + String.format(format, startYear, startYear + yearsInTeam));
-
-		final Traverser traverser = gds.traversalDescription().relationships(RelType.ARISTA, Direction.OUTGOING)
-				.evaluator(Evaluators.excludeStartPosition()).evaluator(Evaluators.atDepth(1)).traverse(playedNode);
-
-		final List<Node> list = StreamSupport.stream(traverser.nodes().spliterator(), false)
-				.filter(node -> node.hasLabel(NodeType.ATRIBUTO)).collect(Collectors.toList());
-
-		list.forEach(node -> {
-			node.setProperty("interval",
-					node.getProperty("interval") + String.format(format, startYear, startYear + yearsInTeam));
-		});
-
-		list.forEach(node -> {
-			if (node.getProperty("title").equals("Posicion")) {
-				final Traverser traverser2 = gds.traversalDescription()
-						.relationships(RelType.ARISTA, Direction.OUTGOING).evaluator(Evaluators.excludeStartPosition())
-						.traverse(playedNode);
-				final List<Node> l2 = StreamSupport.stream(traverser2.nodes().spliterator(), false)
-						.filter(n -> n.getProperty("title").equals(position)).collect(Collectors.toList());
-
-				if (l2.size() > 1) {
-					throw new AssertionError("Boom");
-				}
-
-				if (l2.isEmpty()) {
-					final Map<String, Object> valueProperties = new HashMap<>();
-					valueProperties.put("title", position);
-					valueProperties.put("interval", String.format(cleanFormat, startYear, startYear + yearsInTeam));
-					final Node positionNode = createNode(NodeType.VALOR, valueProperties);
-
-					createRelationship(node, positionNode);
-				} else {
-					final Node n = l2.get(0);
-					n.setProperty("interval",
-							n.getProperty("interval") + String.format(format, startYear, startYear + yearsInTeam));
-				}
-
-			} else {
-				final Traverser traverser2 = gds.traversalDescription()
-						.relationships(RelType.ARISTA, Direction.OUTGOING).evaluator(Evaluators.excludeStartPosition())
-						.traverse(playedNode);
-				final List<Node> l2 = StreamSupport.stream(traverser2.nodes().spliterator(), false)
-						.filter(n -> n.getProperty("title").equals(num)).collect(Collectors.toList());
-
-				if (l2.size() > 1) {
-					throw new AssertionError("Boom");
-				}
-
-				if (l2.isEmpty()) {
-					final Map<String, Object> valueProperties = new HashMap<>();
-					valueProperties.put("title", num);
-					valueProperties.put("interval", String.format(cleanFormat, startYear, startYear + yearsInTeam));
-					final Node positionNode = createNode(NodeType.VALOR, valueProperties);
-
-					createRelationship(node, positionNode);
-				} else {
-					final Node n = l2.get(0);
-					n.setProperty("interval",
-							n.getProperty("interval") + String.format(format, startYear, startYear + yearsInTeam));
-				}
-
-			}
-		});
-
-	}
-
-	private Node createPlayedNode(int startYear, int yearsInTeam, String position, int num) {
-		final String format = "[%d, %d]";
-		final Map<String, Object> playerProperties = new HashMap<>();
-		playerProperties.put("title", "Jugo");
-		playerProperties.put("interval", String.format(format, startYear, startYear + yearsInTeam));
-		final Node playedNode = createNode(NodeType.ARISTA, playerProperties);
-		final Map<String, Object> attributeProperties = new HashMap<>();
-		attributeProperties.put("title", "Posicion");
-		attributeProperties.put("interval", String.format(format, startYear, startYear + yearsInTeam));
-		final Node attributeNode = createNode(NodeType.ATRIBUTO, attributeProperties);
-		final Map<String, Object> valueProperties = new HashMap<>();
-		valueProperties.put("title", position);
-		valueProperties.put("interval", String.format(format, startYear, startYear + yearsInTeam));
-		final Node valueNode = createNode(NodeType.VALOR, valueProperties);
-
-		createRelationship(playedNode, attributeNode);
-		createRelationship(attributeNode, valueNode);
-
-		final Map<String, Object> attribute2Properties = new HashMap<>();
-		attribute2Properties.put("title", "Numero");
-		attribute2Properties.put("interval", String.format(format, startYear, startYear + yearsInTeam));
-		final Node attribute2Node = createNode(NodeType.ATRIBUTO, attribute2Properties);
-		final Map<String, Object> value2Properties = new HashMap<>();
-		value2Properties.put("title", num);
-		value2Properties.put("interval", String.format(format, startYear, startYear + yearsInTeam));
-		final Node value2Node = createNode(NodeType.VALOR, value2Properties);
-
-		createRelationship(playedNode, attribute2Node);
-		createRelationship(attribute2Node, value2Node);
-
-		return playedNode;
-	}
-
-	private Node createTeamNode(String team, int yearStarted) {
-		final String format = "[%d, inf]";
-		final Map<String, Object> teamProperties = new HashMap<>();
-		teamProperties.put("title", "Equipo");
-		teamProperties.put("interval", String.format(format, yearStarted));
-		final Node teamNode = createNode(NodeType.OBJETO, teamProperties);
-		final Map<String, Object> attributeProperties = new HashMap<>();
-		attributeProperties.put("title", "Nombre");
-		attributeProperties.put("interval", String.format(format, yearStarted));
-		final Node attributeNode = createNode(NodeType.ATRIBUTO, attributeProperties);
-		final Map<String, Object> valueProperties = new HashMap<>();
-		valueProperties.put("title", team);
-		valueProperties.put("interval", String.format(format, yearStarted));
-		final Node valueNode = createNode(NodeType.VALOR, valueProperties);
-
-		createRelationship(teamNode, attributeNode);
-		createRelationship(attributeNode, valueNode);
-
-		final Map<String, Object> attribute2Properties = new HashMap<>();
-		attribute2Properties.put("title", "Socios");
-		attribute2Properties.put("interval", String.format(format, yearStarted));
-		final Node attribute2Node = createNode(NodeType.ATRIBUTO, attribute2Properties);
-
-		// TODO: Agregar mas socios por bache.
-		final Map<String, Object> value2Properties = new HashMap<>();
-		value2Properties.put("title", randInt(1000, 10000));
-		value2Properties.put("interval", String.format(format, yearStarted));
-		final Node value2Node = createNode(NodeType.VALOR, value2Properties);
-
-		createRelationship(teamNode, attribute2Node);
-		createRelationship(attribute2Node, value2Node);
-
-		return teamNode;
-
-	}
-
-	private Node createPlayerNode(final String playerName, int yearStarted, int yearsPlayed) {
-		final String format = "[%d, %d]";
-		final Map<String, Object> playerProperties = new HashMap<>();
-		playerProperties.put("title", "Jugador");
-		playerProperties.put("interval", String.format(format, yearStarted, yearStarted + yearsPlayed));
-		final Node playerNode = createNode(NodeType.OBJETO, playerProperties);
-		final Map<String, Object> attributeProperties = new HashMap<>();
-		attributeProperties.put("title", "Nombre");
-		attributeProperties.put("interval", String.format(format, yearStarted, yearStarted + yearsPlayed));
-		final Node attributeNode = createNode(NodeType.ATRIBUTO, attributeProperties);
-		final Map<String, Object> valueProperties = new HashMap<>();
-		valueProperties.put("title", playerName);
-		valueProperties.put("interval", String.format(format, yearStarted, yearStarted + yearsPlayed));
-		final Node valueNode = createNode(NodeType.VALOR, valueProperties);
-
-		createRelationship(playerNode, attributeNode);
-		createRelationship(attributeNode, valueNode);
-
-		return playerNode;
-	}
-
-	public static void main(String[] args) {
-		if (args.length < 1) {
-			System.err.println("Falta nombre de archivo");
-			return;
+		System.out.println("FINISHED PERSON BUILDING " + i);
+		if (i % 10 == 0) {
+		    tx.success();
+		    tx.close();
+		    tx = gds.beginTx();
 		}
-		final Main m = new Main(args[0]);
+	    }
 
-		m.createGraph();
+	    tx.success();
+	} finally {
+	    if (tx != null) {
+		tx.close();
+	    }
+	}
+    }
+
+    private static int randInt(final int min, final int max) {
+	return (int) (Math.random() * (max - min)) + min;
+    }
+
+    private Node createBuildingNode(final String street, final String number) {
+	final int daysOfLife = randInt(0, 100 * 365);
+	final String buildDate;
+	final LocalDate ldt = LocalDate.now().minusDays(daysOfLife).minusDays(randInt(0, 50 * 365));
+	buildDate = ldt.format(DateTimeFormatter.ISO_DATE);
+
+	final String interval = String.format("[%s,%s]", buildDate, "inf");
+
+	final Node buildingNode = createNode(NodeType.OBJETO, "Building", interval);
+
+	final Node streetAttributeNode = createNode(NodeType.ATRIBUTO, "Street", interval);
+	final Node numberAttributeNode = createNode(NodeType.ATRIBUTO, "Number", interval);
+
+	final Node streetValueNode = createNode(NodeType.VALOR, street, interval);
+	final Node numberValueNode = createNode(NodeType.VALOR, number, interval);
+
+	createRelationship(buildingNode, streetAttributeNode);
+	createRelationship(buildingNode, numberAttributeNode);
+	createRelationship(streetAttributeNode, streetValueNode);
+	createRelationship(numberAttributeNode, numberValueNode);
+
+	return buildingNode;
+    }
+
+    private Node createPersonNode(final String name) {
+	final boolean alive = Math.random() < 0.8;
+	final int daysOfLife = randInt(0, 100 * 365);
+	final String birthDate;
+	final String deathDate;
+	if (alive) {
+	    final LocalDate ldt = LocalDate.now().minusDays(daysOfLife);
+	    birthDate = ldt.format(DateTimeFormatter.ISO_DATE);
+	    deathDate = "inf";
+	} else {
+	    final LocalDate ldt = LocalDate.now().minusDays(daysOfLife).minusDays(randInt(0, 50 * 365));
+	    birthDate = ldt.format(DateTimeFormatter.ISO_DATE);
+	    deathDate = ldt.plusDays(daysOfLife).format(DateTimeFormatter.ISO_DATE);
 	}
 
-	public static GraphDatabaseService createEmbeddedGraphDatabaseService(final String storeDir) {
-		final GraphDatabaseService gds = new GraphDatabaseFactory().newEmbeddedDatabase(storeDir);
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> gds.shutdown()));
-		return gds;
+	final String interval = String.format("[%s,%s]", birthDate, deathDate);
+
+	final Node personNode = createNode(NodeType.OBJETO, "Person", interval);
+
+	final Node nameAttributeNode = createNode(NodeType.ATRIBUTO, "Name", interval);
+	final Node ageAttributeNode = createNode(NodeType.ATRIBUTO, "Age", interval);
+
+	final Node nameValueNode = createNode(NodeType.VALOR, name, interval);
+	final Node ageValueNode = createNode(NodeType.VALOR, Integer.toString(daysOfLife / 365), interval);
+
+	createRelationship(personNode, nameAttributeNode);
+	createRelationship(personNode, ageAttributeNode);
+	createRelationship(nameAttributeNode, nameValueNode);
+	createRelationship(ageAttributeNode, ageValueNode);
+
+	return personNode;
+    }
+
+    private void makeLiving(final Node person, final Node building, final String start, final String end) {
+	final Node livedIn = createNode(NodeType.ARISTA, "LivedIn", String.format("[%s,%s]", start, end));
+	createRelationship(person, livedIn);
+	createRelationship(livedIn, building);
+    }
+
+    private boolean makeFriends(final Node person1, final Node person2) {
+	final String[] person1Interval = ((String) person1.getProperty("interval")).replace("[", "").replace("]", "")
+	    .split(",");
+	final String person1Birth = person1Interval[0];
+	final String person1Death = person1Interval[1];
+	final String[] person2Interval = ((String) person2.getProperty("interval")).replace("[", "").replace("]", "")
+	    .split(",");
+	final String person2Birth = person2Interval[0];
+	final String person2Death = person2Interval[1];
+
+	if (!person2Death.equals("inf") && person1Birth.compareTo(person2Death) > 0) {
+	    return false;
+	}
+	if (!person1Death.equals("inf") && person2Birth.compareTo(person1Death) > 0) {
+	    return false;
 	}
 
-	private static enum RelType implements RelationshipType {
-		ARISTA
+	final LocalDate possibleStart;
+	if (person1Birth.compareTo(person2Birth) < 0) {
+	    possibleStart = LocalDate.parse(person2Birth, DateTimeFormatter.ISO_DATE);
+	} else {
+	    possibleStart = LocalDate.parse(person1Birth, DateTimeFormatter.ISO_DATE);
 	}
 
-	private static enum NodeType implements Label {
-		OBJETO, ARISTA, ATRIBUTO, VALOR
+	final LocalDate possibleEnd;
+
+	if (person1Death.equals("inf") && person2Death.equals("inf")) {
+	    possibleEnd = null;
+	} else if (person1Death.equals("inf")) {
+	    possibleEnd = LocalDate.parse(person2Death, DateTimeFormatter.ISO_DATE);
+	} else {
+	    possibleEnd = LocalDate.parse(person1Death, DateTimeFormatter.ISO_DATE);
 	}
 
-	private final GraphDatabaseService gds;
-
-	public Main(final String path) {
-		gds = createEmbeddedGraphDatabaseService(path);
+	final String start;
+	final String end;
+	if (possibleEnd == null) {
+	    start = possibleStart.plusDays(randLong(1, possibleStart.until(LocalDate.now(), ChronoUnit.DAYS) - 1))
+		.format(DateTimeFormatter.ISO_DATE);
+	    end = "inf";
+	} else {
+	    start = possibleStart.plusDays(randLong(1, possibleStart.until(possibleEnd, ChronoUnit.DAYS) - 1)).format(
+		DateTimeFormatter.ISO_DATE);
+	    end = possibleEnd.format(DateTimeFormatter.ISO_DATE);
 	}
 
-	private Node createNode(final NodeType type, final Map<String, Object> properties) {
-		final Node n = gds.createNode(type);
-		for (final Entry<String, Object> p : properties.entrySet()) {
-			n.setProperty(p.getKey(), p.getValue());
-		}
-		return n;
+	final Node friendship = createNode(NodeType.ARISTA, "Friend", String.format("[%s,%s]", start, end));
+	createRelationship(person1, friendship);
+	createRelationship(friendship, person2);
+	createRelationship(person2, friendship);
+	createRelationship(friendship, person1);
+
+	return true;
+    }
+
+    public static void main(String[] args) {
+	if (args.length < 1) {
+	    System.err.println("Falta nombre de archivo");
+	    return;
+	}
+	final Main m = new Main(args[0]);
+
+	m.createGraph();
+    }
+
+    public static GraphDatabaseService createEmbeddedGraphDatabaseService(final String storeDir) {
+	final GraphDatabaseService gds = new GraphDatabaseFactory().newEmbeddedDatabase(storeDir);
+	Runtime.getRuntime().addShutdownHook(new Thread(() -> gds.shutdown()));
+	return gds;
+    }
+
+    private static enum RelType implements RelationshipType {
+	ARISTA
+    }
+
+    private static enum NodeType implements Label {
+	OBJETO, ARISTA, ATRIBUTO, VALOR
+    }
+
+    private final GraphDatabaseService gds;
+
+    public Main(final String path) {
+	gds = createEmbeddedGraphDatabaseService(path);
+    }
+
+    private Node createNode(final NodeType type, final String title, final String interval) {
+	final Node n = gds.createNode(type);
+	n.setProperty("title", title);
+	n.setProperty("interval", interval);
+	return n;
+    }
+
+    private static Relationship createRelationship(final Node from, Node to) {
+	final Relationship rel = from.createRelationshipTo(to, RelType.ARISTA);
+
+	final Label fromLabel = from.getLabels().iterator().next();
+	final Label toLabel = to.getLabels().iterator().next();
+
+	if (fromLabel.equals(NodeType.ARISTA) && toLabel.equals(NodeType.OBJETO)) {
+	    rel.setProperty("title", from.getProperty("title"));
+	} else if (toLabel.equals(NodeType.ARISTA) && fromLabel.equals(NodeType.OBJETO)) {
+	    rel.setProperty("title", to.getProperty("title"));
 	}
 
-	private static Relationship createRelationship(final Node from, Node to) {
-		final Relationship rel = from.createRelationshipTo(to, RelType.ARISTA);
-		
-		final Label fromLabel = from.getLabels().iterator().next();
-		final Label toLabel = to.getLabels().iterator().next();
-		
-		if (fromLabel.equals(NodeType.ARISTA) && toLabel.equals(NodeType.OBJETO)) {
-		    rel.setProperty("title", from.getProperty("title"));
-		} else if (toLabel.equals(NodeType.ARISTA) && fromLabel.equals(NodeType.OBJETO)) {
-		    rel.setProperty("title", to.getProperty("title"));
-		}
-		
-		return rel;
-	}
+	return rel;
+    }
 }

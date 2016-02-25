@@ -34,6 +34,7 @@ public class Dao {
     private static Gson gson = new Gson();
 
     public static String query(final String q, final Predicate<Node> filter) {
+	final long start = System.currentTimeMillis();
 	try (final Transaction ignored = DB.beginTx(); final Result result = DB.execute(q)) {
 	    final Graph graph = new Graph();
 	    final Set<Relationship> relationships = new HashSet<>();
@@ -103,7 +104,8 @@ public class Dao {
 			&& nodePositions.containsKey(r.getEndNode().getId())).forEach(
 		rel -> links.add(new Link(nodePositions.get(rel.getStartNode().getId()), nodePositions.get(rel
 		    .getEndNode().getId()))));
-
+	    
+	    System.out.println("EXECUTION TIME " + (System.currentTimeMillis() - start));
 	    final JsonGraph<JsonExpandedNode> g = new JsonGraph<>(nodes, links);
 	    return gson.toJson(g);
 	}

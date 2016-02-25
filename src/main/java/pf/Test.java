@@ -60,7 +60,7 @@ public class Test {
 	public static void main(String[] args) throws IOException {
 
 		Test test = new Test(
-				"select * from Jugador-Jugo[1..4]->Equipo");
+				"select * from Person-Friend->Person as P2 where Person.Name = 'E K'");
 		System.out.println(test.getResultsAsString());
 
 	}
@@ -89,6 +89,7 @@ public class Test {
 	}
 
 	public String getResultsAsString() {
+	    	final long start = System.currentTimeMillis();
 		parseListOfPath(root.list_of_path());
 		generator = new IncremetalStringGenerator(aliasToName.keySet());
 
@@ -146,6 +147,7 @@ public class Test {
 		finalQuery.append(" AS result0 UNWIND result0 AS result RETURN DISTINCT result");
 		
 		System.out.println(finalQuery);
+		System.out.println("TRANSLATION TIME " + (System.currentTimeMillis() - start));
 		return Dao.query(finalQuery.toString(), filter);
 	}
 
