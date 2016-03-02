@@ -6,10 +6,23 @@ import org.neo4j.graphdb.Node;
 
 public class Snapshot implements Predicate<Node> {
 
-    private final String snapshot;
+    private final String snapshotFrom;
+    private final String snapshotTo;
 
     public Snapshot(final String snapshot) {
-	this.snapshot = snapshot;
+	final int snapshotSeps = snapshot.length() - snapshot.replace("-", "").length();
+	switch (snapshotSeps) {
+	    case 0:
+		this.snapshotTo = snapshot + "-01-01";
+		this.snapshotFrom = snapshot + "-12-31";
+		break;
+	    case 1:
+		this.snapshotTo = snapshot + "-01";
+		this.snapshotFrom = snapshot + "-31";
+		break;
+	    default:
+		this.snapshotFrom = this.snapshotTo = snapshot;
+	}
     }
 
     @Override
@@ -19,12 +32,9 @@ public class Snapshot implements Predicate<Node> {
 	    final String prop = interval.replace("[", "").replace("]", "");
 	    final String[] limits = prop.split(",\\s*");
 	    final String from = limits[0];
-	    if (limits.length == 1) {
-		System.out.println("STAHP!");
-	    } 
 	    final String to = limits[1];
 
-	    if (snapshot.compareTo(from) >= 0 && (snapshot.compareTo(to) <= 0 || to.equals("inf"))) {
+	    if (snapshotFrom.compareTo(from) >= 0 && (snapshotTo.compareTo(to) <= 0 || to.equals("inf"))) {
 		return true;
 	    }
 	}

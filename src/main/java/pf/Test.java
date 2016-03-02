@@ -60,7 +60,7 @@ public class Test {
 	public static void main(String[] args) throws IOException {
 
 		Test test = new Test(
-				"select * from Person-Friend->Person as P2 where Person.Name = 'E K'");
+				"select * from Person-LivedIn->Building where Person.Name = 'E K' SNAPSHOT 1990");
 		System.out.println(test.getResultsAsString());
 
 	}
